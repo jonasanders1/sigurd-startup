@@ -15,13 +15,18 @@ import {
   Space,
   Pause,
   RotateCcw,
+  Coffee,
+  Trophy,
+  Heart,
+  Joystick,
+  Maximize,
 } from "lucide-react";
 
 import BurnRate from "../../assets/sprites/burn-rate/1.png";
 import EmergencyFunding from "../../assets/sprites/extra/1.png";
 import PowerNetworking from "../../assets/sprites/power/1.png";
 import Super from "../../assets/sprites/super/1.png";
-import Coffee from "../../assets/coffee.png";
+
 const Rules = () => {
   const specialItems = [
     {
@@ -58,86 +63,157 @@ const Rules = () => {
   ];
 
   return (
-    <Card className="bg-card/50 backdrop-blur-sm border-border">
-      <CardHeader>
-        <CardTitle className="text-foreground">Game Rules & Tips</CardTitle>
-        <CardDescription className="text-muted-foreground">
-          Help Sigurd navigate the treacherous world of Norwegian
-          entrepreneurship
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-8">
-        {/* Special Items */}
-        <div>
-          <h3 className="text-lg font-semibold mb-3">Special Tokens</h3>
-          <div className="space-y-4 flex flex-col gap-4">
-            {specialItems.map((item, index) => (
-              <div key={index} className="flex items-center gap-4">
-                {item.icon}
-                <div className="flex flex-col">
-                  <h4 className="font-medium">{item.title}</h4>
-                  <p className="text-muted-foreground text-sm">
-                    {item.description}
-                  </p>
-                </div>
-                {item.quote && (
-                  <blockquote className="text-sm italic text-primary/80 pl-4 border-l-2 border-primary/30">
-                    "{item.quote}"
-                  </blockquote>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Scoring */}
-        <div>
-          <h3 className="text-lg font-semibold mb-3">Bonus Scoring</h3>
-          <p className="text-muted-foreground text-sm mb-4">
-            Collect all funding opportunities (24 per level) to advance. Bonus
-            Strategy: Collect "lit" funding in sequence for massive point
-            bonuses.
+    <div className="rounded-lg bg-gray-700/20 backdrop-blur-md border border-border p-6 mx-auto">
+      <div className="space-y-8">
+        {/* Header */}
+        <div className="text-center space-y-2">
+          <h1 className="text-3xl font-bold text-primary">Game Rules & Tips</h1>
+          <p className="text-muted-foreground">
+            Help Sigurd navigate the treacherous world of Norwegian
+            entrepreneurship
           </p>
-          <div className="border rounded-lg overflow-hidden">
-            <table className="w-full">
-              <thead>
-                <tr className="bg-primary/10">
-                  <th className="px-4 py-2 text-left text-lg font-medium text-muted-foreground">
-                    Sequence
-                  </th>
-                  <th className="px-4 py-2 text-right text-lg font-medium text-muted-foreground">
-                    Bonus
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {scoring.map((score, index) => (
-                  <tr key={index} className="border-t border-border/50">
-                    <td className="px-4 py-2 text-lg text-muted-foreground">
-                      {score.condition}
-                    </td>
-                    <td className="px-4 py-2 text-lg font-medium text-primary text-right">
-                      {score.points}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
         </div>
 
-        {/* Lives */}
-        <div>
-          <h3 className="text-lg font-semibold mb-3">Lives & Game Over</h3>
-          <ul className="list-disc list-inside space-y-1 text-muted-foreground">
-            <li>Start with 3 lives (coffee cups)</li>
-            <li>Lose a life when touching bureaucratic obstacles</li>
-            <li>Gain extra lives through E coins</li>
-            <li>Game over when all lives are lost</li>
-          </ul>
+        {/* Main Content */}
+        <div className="grid md:grid-cols-2 gap-6">
+          {/* Left Column */}
+          <div className="space-y-8">
+            {/* Special Items */}
+            <div className="rounded-lg bg-background/50 p-4 border border-border">
+              <div className="flex items-center gap-2 mb-4">
+                <Zap className="w-5 h-5 text-primary" />
+                <h2 className="text-xl font-semibold">Special Tokens</h2>
+              </div>
+              <div className="space-y-6">
+                {specialItems.map((item, index) => (
+                  <div
+                    key={index}
+                    className="flex items-start gap-4 p-3 rounded-lg hover:bg-background/50 transition-colors"
+                  >
+                    {item.icon}
+                    <div>
+                      <h3 className="font-medium text-primary">{item.title}</h3>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        {item.description}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Lives Section */}
+            <div className="rounded-lg bg-background/50 p-4 border border-border">
+              <div className="flex items-center gap-2 mb-4">
+                <Heart className="w-5 h-5 text-destructive" />
+                <h2 className="text-xl font-semibold">Lives & Game Over</h2>
+              </div>
+              <ul className="space-y-2 text-muted-foreground">
+                <li className="flex items-center gap-2">
+                  <Coffee className="w-4 h-4 text-destructive" />
+                  Start with 3 lives (coffee cups)
+                </li>
+                <li className="flex items-center gap-2">
+                  <span className="w-4 h-4 text-destructive">⚠️</span>
+                  Lose a life when touching bureaucratic obstacles
+                </li>
+                <li className="flex items-center gap-2">
+                  <span className="w-4 h-4 text-destructive">🔄</span>
+                  Gain extra lives through E coins
+                </li>
+                <li className="flex items-center gap-2">
+                  <span className="w-4 h-4 text-destructive">💀</span>
+                  Game over when all lives are lost
+                </li>
+              </ul>
+            </div>
+          </div>
+
+          {/* Right Column */}
+          <div className="space-y-8">
+            {/* Scoring Section */}
+            <div className="rounded-lg bg-background/50 p-4 border border-border">
+              <div className="flex items-center gap-2 mb-4">
+                <Trophy className="w-5 h-5 text-primary" />
+                <h2 className="text-xl font-semibold">Bonus Scoring</h2>
+              </div>
+              <p className="text-muted-foreground text-sm mb-4">
+                Collect all funding opportunities (24 per level) to advance.
+                Bonus Strategy: Collect "lit" funding in sequence for massive
+                point bonuses.
+              </p>
+              <div className="space-y-2">
+                {scoring.map((score, index) => (
+                  <div
+                    key={index}
+                    className="flex justify-between items-center p-2 border-b border-primary/50"
+                  >
+                    <span className="text-muted-foreground">
+                      {score.condition}
+                    </span>
+                    <span className="font-medium text-primary">
+                      {score.points}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Controls Section */}
+            <div className="rounded-lg bg-background/50 p-4 border border-border">
+              <div className="flex items-center gap-2 mb-4">
+                <Joystick className="w-5 h-5 text-primary" />
+                <h2 className="text-xl font-semibold">Game Controls</h2>
+              </div>
+              <div className="flex flex-wrap gap-4">
+                <div className="flex items-center gap-2 bg-background/50 px-2 py-1 rounded">
+                  <span className="text-sm text-muted-foreground">Move:</span>
+                  <div className="flex items-center gap-1 ">
+                    <ArrowLeft className="w-4 h-4" />
+                    <span className="text-xs">And</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 bg-background/50 px-2 py-1 rounded">
+                  <span className="text-sm text-muted-foreground">Jump:</span>
+                  <div className="flex items-center gap-1 ">
+                    <ArrowUp className="w-4 h-4" />
+                    <span className="text-xs">And</span>
+                    <ArrowDown className="w-4 h-4" />
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 bg-background/50 px-2 py-1 rounded">
+                  <span className="text-sm text-muted-foreground">Float:</span>
+                  <div className="flex items-center gap-1 ">
+                    <Space className="w-4 h-4" />
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 bg-background/50 px-2 py-1 rounded">
+                  <span className="text-sm text-muted-foreground">Pause:</span>
+                  <div className="flex items-center gap-1 ">
+                    <Pause className="w-4 h-4" />
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 bg-background/50 px-2 py-1 rounded">
+                  <span className="text-sm text-muted-foreground">Reset:</span>
+                  <div className="flex items-center gap-1 ">
+                    <RotateCcw className="w-4 h-4" />
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 bg-background/50 px-2 py-1 rounded">
+                  <span className="text-sm text-muted-foreground">
+                    Fullscreen:
+                  </span>
+                  <div className="flex items-center gap-1">
+                    <Maximize className="w-4 h-4" />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 };
 

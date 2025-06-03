@@ -14,7 +14,7 @@ const Navigation = () => {
   ];
 
   return (
-    <nav className="bg-background/95 backdrop-blur-sm border-b border-border">
+    <nav className="container mx-auto mt-4 rounded-lg bg-gray-700/20 backdrop-blur-md border-b fixed top-0 left-0 right-0 z-50">
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16">
           <Link to="/" className="text-xl font-bold text-primary font-mono tracking-wider">

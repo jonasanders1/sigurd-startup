@@ -10,42 +10,37 @@ const Home = () => {
       <Navigation />
 
       {/* Hero Section */}
-      <div className="relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-r from-primary/10 to-accent/10 opacity-30"></div>
-        <div className="container mx-auto px-4 py-20">
-          <div className="max-w-6xl mx-auto">
-            <div className="grid lg:grid-cols-2 gap-12 items-center">
-              <div className="space-y-6">
-                <h1 className="text-5xl font-bold text-primary flex items-center gap-4">
-                  Dette er Sigurd
-                  <ArrowRight className="w-20 h-20 text-primary animate-pulse" />
-                </h1>
-                <p className="text-xl text-muted-foreground">
-                  En entreprenør på jakt etter neste store suksess. Men først må
-                  han navigere gjennom byråkratiet og finne veien til
-                  finansiering.
-                </p>
-                <div className="pt-4">
-                  <Link to="/game">
-                    <Button
-                      size="lg"
-                      className="bg-primary hover:bg-accent hover:text-white text-slate-900 px-12 py-6 text-xl font-bold rounded-xl transform transition-all duration-300"
-                    >
-                      Start Spillet
-                      <Joystick className="w-10 h-10 ml-2" />
-                    </Button>
-                  </Link>
-                </div>
-              </div>
-
-              <img
-                src={sigurd}
-                alt="Sigurd Startup"
-                className="w-full h-full object-cover"
-              />
-            </div>
+      <div className="h-screen flex flex-row items-center justify-center">
+        <div className="flex flex-col h-full justify-center max-w-2xl">
+          <h1 className="text-5xl font-bold text-primary flex items-center gap-4">
+            Dette er Sigurd
+            <ArrowRight className="w-20 h-20 text-primary animate-pulse" />
+          </h1>
+          <p className="text-xl text-muted-foreground">
+            Sigurd er en entreprenør på jakt etter neste store suksess. Men
+            først må han navigere gjennom byråkratiet og finne veien til
+            finansiering.
+          </p>
+          <div className="pt-4">
+            <Link to="/game">
+              <Button
+                size="lg"
+                className="bg-primary hover:bg-accent hover:text-white text-slate-900 px-12 py-6 text-xl font-bold rounded-xl transform transition-all duration-300"
+              >
+                Start Spillet
+                <Joystick className="w-10 h-10 ml-2" />
+              </Button>
+            </Link>
           </div>
         </div>
+
+        <img
+          src={sigurd}
+          width={500}
+          height={500}
+          alt="Sigurd Startup"
+          className="object-cover"
+        />
       </div>
 
       {/* Story Timeline */}
@@ -76,10 +71,10 @@ const Home = () => {
                     Drømmen
                   </h3>
                   <p className="text-muted-foreground leading-relaxed">
-                    Det var en gang, et lite sted i Norge, bodde en ung gründer
-                    ved navn Sigurd. Med øyne fulle av ambisjoner og et hjerte
-                    som brant for innovasjon, drømte Sigurd om å skape noe
-                    revolusjonerende som skulle forandre verden.
+                    Det var en gang, en ung gründer ved navn Sigurd. Med øyne
+                    fulle av ambisjoner og et hjerte som brant for innovasjon,
+                    drømte Sigurd om å skape noe revolusjonerende som skulle
+                    forandre verden.
                   </p>
                   <blockquote className="mt-4 pl-4 border-l-4 border-primary/50 italic text-primary/90">
                     "Dette blir lett," tenkte han naivt, mens han registrerte
