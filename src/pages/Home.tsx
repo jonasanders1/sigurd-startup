@@ -3,6 +3,7 @@ import Navigation from "@/components/Navigation";
 import { Button } from "@/components/ui/button";
 import sigurd from "@/assets/sigurd.png";
 import { ArrowRight, Joystick } from "lucide-react";
+import SpeechBubble from "@/components/home/SpeechBubble";
 
 const Home = () => {
   return (
@@ -10,37 +11,46 @@ const Home = () => {
       <Navigation />
 
       {/* Hero Section */}
-      <div className="h-screen flex flex-row items-center justify-center">
-        <div className="flex flex-col h-full justify-center max-w-2xl">
-          <h1 className="text-5xl font-bold text-primary flex items-center gap-4">
-            Dette er Sigurd
-            <ArrowRight className="w-20 h-20 text-primary animate-pulse" />
-          </h1>
-          <p className="text-xl text-muted-foreground">
-            Sigurd er en entreprenør på jakt etter neste store suksess. Men
-            først må han navigere gjennom byråkratiet og finne veien til
-            finansiering.
-          </p>
-          <div className="pt-4">
-            <Link to="/game">
-              <Button
-                size="lg"
-                className="bg-primary hover:bg-accent hover:text-white text-slate-900 px-12 py-6 text-xl font-bold rounded-xl transform transition-all duration-300"
-              >
-                Start Spillet
-                <Joystick className="w-10 h-10 ml-2" />
-              </Button>
-            </Link>
+      <div className="container mx-auto px-4 h-screen">
+        <div className="grid lg:grid-cols-2 gap-8 h-full items-center">
+          {/* Left Column - Text Content */}
+          <div className="flex flex-col justify-center space-y-6 ">
+            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-primary flex items-center gap-4">
+              Dette er Sigurd
+              <ArrowRight className="w-16 h-16 md:w-20 md:h-20 text-primary animate-pulse" />
+            </h1>
+            <p className="text-lg md:text-xl text-muted-foreground max-w-xl">
+              Sigurd er en entreprenør på jakt etter neste store suksess. Men
+              først må han navigere gjennom byråkratiet og finne veien til
+              finansiering.
+            </p>
+            <div className="pt-4">
+              <Link to="/game">
+                <Button
+                  size="lg"
+                  className="bg-primary hover:bg-accent hover:text-white text-slate-900 px-8 md:px-12 py-6 text-lg md:text-xl font-bold rounded-xl transform transition-all duration-300 hover:scale-105"
+                >
+                  Start Spillet
+                  <Joystick className="w-8 h-8 md:w-10 md:h-10 ml-2" />
+                </Button>
+              </Link>
+            </div>
+          </div>
+
+          {/* Right Column - Image and Speech Bubble */}
+          <div className="relative flex items-center justify-center">
+            <div className="relative">
+              <img
+                src={sigurd}
+                width={500}
+                height={500}
+                alt="Sigurd Startup"
+                className="object-cover w-full max-w-[500px] h-auto"
+              />
+              <SpeechBubble />
+            </div>
           </div>
         </div>
-
-        <img
-          src={sigurd}
-          width={500}
-          height={500}
-          alt="Sigurd Startup"
-          className="object-cover"
-        />
       </div>
 
       {/* Story Timeline */}
