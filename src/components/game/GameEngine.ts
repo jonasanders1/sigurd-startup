@@ -1,0 +1,545 @@
+import { MapDefinition, getMapById, mapDefinitions } from './MapDefinitions';
+import { Physics } from './Physics';
+import { CollisionDetection } from './CollisionDetection';
+import { Renderer } from './Renderer';
+
+export interface GameState {
+  score: number;
+  lives: number;
+  level: number;
+  gameStatus: 'menu' | 'playing' | 'paused' | 'gameOver';
+  currentMapId: string;
+  efficiencyMultiplier: number;
+  bombsCollected: number[];
+  correctOrderCount: number;
+  bCoinsCollected: number;
+  eCoinsCollected: number;
+  pCoinActive: boolean;
+  pCoinTimeLeft: number;
+  currentActiveGroup: number | null; // Track which group the player is currently working on
+  completedGroups: number[]; // Track which groups have been completed
+}
+
+export interface Player {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  velocityX: number;
+  velocityY: number;
+  onGround: boolean;
+  color: string;
+}
+
+export interface Bomb {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  order: number;
+  group: number; // Add group property
+  collected: boolean;
+  isCorrectNext: boolean;
+  isInActiveGroup: boolean; // Add flag for group highlighting
+}
+
+export interface Monster {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  type: 'bureaucrat' | 'taxman' | 'regulator';
+  velocityX: number;
+  patrolStartX: number;
+  patrolEndX: number;
+  speed: number;
+  color: string;
+}
+
+export interface Platform {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+export interface SpecialCoin {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  type: 'B' | 'E' | 'P' | 'S';
+  collected: boolean;
+  color: string;
+  value?: number;
+}
+
+export class GameEngine {
+  private width: number;
+  private height: number;
+  private setGameState: React.Dispatch<React.SetStateAction<GameState>>;
+  
+  private currentMap: MapDefinition;
+  private player: Player;
+  private bombs: Bomb[];
+  private monsters: Monster[];
+  private platforms: Platform[];
+  private specialCoins: SpecialCoin[];
+  private keys: { [key: string]: boolean } = {};
+  private jumpHoldTime = 0;
+  private isJumpPressed = false;
+  private pCoinColors = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#C0C0C0']; // Blue to Silver
+  private pCoinColorIndex = 0;
+
+  // Module instances
+  private physics: Physics;
+  private collisionDetection: CollisionDetection;
+  private renderer: Renderer;
+
+  constructor(
+    ctx: CanvasRenderingContext2D, 
+    width: number, 
+    height: number, 
+    setGameState: React.Dispatch<React.SetStateAction<GameState>>
+  ) {
+    this.width = width;
+    this.height = height;
+    this.setGameState = setGameState;
+
+    // Initialize modules
+    this.physics = new Physics();
+    this.collisionDetection = new CollisionDetection();
+    this.renderer = new Renderer(ctx, width, height);
+
+    // Load the first map
+    this.currentMap = mapDefinitions[0];
+    this.loadMap(this.currentMap);
+
+    // Setup controls
+    this.setupControls();
+  }
+
+  private loadMap(mapDef: MapDefinition) {
+    this.currentMap = mapDef;
+    
+    // Initialize player at map start position
+    this.player = {
+      x: mapDef.playerStartX,
+      y: mapDef.playerStartY,
+      width: 32,
+      height: 32,
+      velocityX: 0,
+      velocityY: 0,
+      onGround: false,
+      color: '#3B82F6'
+    };
+
+    // Load platforms from map
+    this.platforms = mapDef.platforms.map(p => ({ ...p }));
+
+    // Load bombs from map
+    this.bombs = this.generateBombsFromMap(mapDef);
+
+    // Load monsters from map
+    this.monsters = this.generateMonstersFromMap(mapDef);
+
+    // Initialize special coins
+    this.specialCoins = [];
+
+    console.log(`Loaded map: ${mapDef.name} with ${this.bombs.length} bombs`);
+  }
+
+  public switchToMap(mapId: string) {
+    const newMap = getMapById(mapId);
+    if (newMap) {
+      this.loadMap(newMap);
+      this.setGameState(prev => ({ 
+        ...prev, 
+        currentMapId: mapId,
+        bombsCollected: [],
+        correctOrderCount: 0,
+        bCoinsCollected: 0,
+        eCoinsCollected: 0,
+        pCoinActive: false,
+        pCoinTimeLeft: 0,
+        currentActiveGroup: null,
+        completedGroups: []
+      }));
+    }
+  }
+
+  public nextMap() {
+    const currentIndex = mapDefinitions.findIndex(m => m.id === this.currentMap.id);
+    const nextIndex = (currentIndex + 1) % mapDefinitions.length;
+    this.switchToMap(mapDefinitions[nextIndex].id);
+  }
+
+  private generateBombsFromMap(mapDef: MapDefinition): Bomb[] {
+    return mapDef.bombs.map(b => ({
+      x: b.x,
+      y: b.y,
+      width: 20,
+      height: 20,
+      order: b.order,
+      group: b.group,
+      collected: false,
+      isCorrectNext: false,
+      isInActiveGroup: false
+    }));
+  }
+
+  private generateMonstersFromMap(mapDef: MapDefinition): Monster[] {
+    const colors = {
+      bureaucrat: '#DC2626',
+      taxman: '#7C2D12',
+      regulator: '#991B1B'
+    };
+
+    return mapDef.monsters.map(m => ({
+      x: m.x,
+      y: m.y,
+      width: 28,
+      height: 28,
+      type: m.type,
+      velocityX: m.speed || 1,
+      patrolStartX: m.patrolStartX || m.x,
+      patrolEndX: m.patrolEndX || m.x + 100,
+      speed: m.speed || 1,
+      color: colors[m.type]
+    }));
+  }
+
+  private setupControls() {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space', 'KeyW', 'KeyA', 'KeyS', 'KeyD'].includes(e.code)) {
+        e.preventDefault();
+      }
+      this.keys[e.code] = true;
+    };
+
+    const handleKeyUp = (e: KeyboardEvent) => {
+      if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space', 'KeyW', 'KeyA', 'KeyS', 'KeyD'].includes(e.code)) {
+        e.preventDefault();
+      }
+      this.keys[e.code] = false;
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
+  }
+
+  public start() {
+    console.log('Game started!');
+  }
+
+  public reset() {
+    this.loadMap(this.currentMap);
+    this.isJumpPressed = false;
+    this.jumpHoldTime = 0;
+    this.pCoinColorIndex = 0;
+    this.setGameState(prev => ({
+      ...prev,
+      bombsCollected: [],
+      correctOrderCount: 0,
+      efficiencyMultiplier: 1,
+      bCoinsCollected: 0,
+      eCoinsCollected: 0,
+      pCoinActive: false,
+      pCoinTimeLeft: 0,
+      currentActiveGroup: null,
+      completedGroups: []
+    }));
+  }
+
+  public update() {
+    // Handle input and update player movement
+    const jumpResult = this.physics.updatePlayerMovement(
+      this.player, 
+      this.keys, 
+      this.jumpHoldTime, 
+      this.isJumpPressed
+    );
+    this.jumpHoldTime = jumpResult.newJumpHoldTime;
+    this.isJumpPressed = jumpResult.newIsJumpPressed;
+    
+    // Update P coin color when jumping or hitting walls
+    if (jumpResult.newIsJumpPressed && !this.isJumpPressed) {
+      this.updatePCoinColor();
+    }
+    
+    // Update player physics
+    const playerPhysicsResult = this.physics.updatePlayerPhysics(this.player, this.platforms, this.width, this.height);
+    if (playerPhysicsResult.hitWall) {
+      this.updatePCoinColor();
+    }
+    
+    // Update monsters
+    this.updateMonsters();
+    
+    // Check collisions
+    this.collisionDetection.checkBombCollisions(this.player, this.bombs, this.setGameState);
+    this.collisionDetection.checkMonsterCollisions(this.player, this.monsters, this.currentMap, this.setGameState);
+    this.checkSpecialCoinCollisions();
+    
+    // Update bomb highlighting
+    this.updateBombHighlighting();
+    
+    // Update special coins
+    this.updateSpecialCoins();
+    
+    // Check win condition
+    this.checkWinCondition();
+  }
+
+  private updatePCoinColor() {
+    this.pCoinColorIndex = (this.pCoinColorIndex + 1) % this.pCoinColors.length;
+    this.specialCoins.forEach(coin => {
+      if (coin.type === 'P' && !coin.collected) {
+        coin.color = this.pCoinColors[this.pCoinColorIndex];
+        coin.value = this.pCoinColorIndex === 4 ? 2000 : 100 + (this.pCoinColorIndex * 475); // Silver = 2000, others scale up
+      }
+    });
+  }
+
+  private updateSpecialCoins() {
+    this.setGameState(prev => {
+      // Check for B coin spawning (every 5000 points)
+      const shouldSpawnBCoin = Math.floor(prev.score / 5000) > prev.bCoinsCollected && 
+                              prev.bCoinsCollected < 5 &&
+                              !this.specialCoins.some(c => c.type === 'B' && !c.collected);
+      
+      if (shouldSpawnBCoin) {
+        this.spawnSpecialCoin('B');
+      }
+
+      // Check for E coin spawning (after 8 B coins, or earlier if player lost lives)
+      const eCoinsNeeded = Math.max(1, 8 - (3 - prev.lives)); // Fewer B coins needed if lives lost
+      const shouldSpawnECoin = prev.bCoinsCollected >= eCoinsNeeded && 
+                              !this.specialCoins.some(c => c.type === 'E' && !c.collected);
+      
+      if (shouldSpawnECoin) {
+        this.spawnSpecialCoin('E');
+      }
+
+      // Check for P coin spawning (10 lit bombs OR 20 total bombs)
+      const litBombs = this.bombs.filter(b => b.collected && b.isCorrectNext).length;
+      const shouldSpawnPCoin = (litBombs >= 10 || prev.bombsCollected.length >= 20) && 
+                              !this.specialCoins.some(c => c.type === 'P' && !c.collected);
+      
+      if (shouldSpawnPCoin) {
+        this.spawnSpecialCoin('P');
+      }
+
+      // Update P coin power mode timer
+      let newPCoinTimeLeft = prev.pCoinTimeLeft;
+      if (prev.pCoinActive && newPCoinTimeLeft > 0) {
+        newPCoinTimeLeft -= 16; // Roughly 60fps, so ~1 second per 60 frames
+        if (newPCoinTimeLeft <= 0) {
+          return { ...prev, pCoinActive: false, pCoinTimeLeft: 0 };
+        }
+      }
+
+      return { ...prev, pCoinTimeLeft: newPCoinTimeLeft };
+    });
+  }
+
+  private spawnSpecialCoin(type: 'B' | 'E' | 'P' | 'S') {
+    const colors = {
+      B: '#FFD700', // Gold
+      E: '#FF69B4', // Pink
+      P: this.pCoinColors[this.pCoinColorIndex],
+      S: '#9400D3'  // Violet
+    };
+
+    // Find a safe spawn position
+    const spawnX = Math.random() * (this.width - 30) + 15;
+    const spawnY = Math.random() * (this.height - 100) + 50;
+
+    const coin: SpecialCoin = {
+      x: spawnX,
+      y: spawnY,
+      width: 25,
+      height: 25,
+      type,
+      collected: false,
+      color: colors[type],
+      value: type === 'P' ? (this.pCoinColorIndex === 4 ? 2000 : 100 + (this.pCoinColorIndex * 475)) : undefined
+    };
+
+    this.specialCoins.push(coin);
+    console.log(`${type} coin spawned!`);
+  }
+
+  private checkSpecialCoinCollisions() {
+    this.specialCoins.forEach(coin => {
+      if (!coin.collected && this.isColliding(this.player, coin)) {
+        coin.collected = true;
+        
+        this.setGameState(prev => {
+          const newState = { ...prev };
+          
+          switch (coin.type) {
+            case 'B':
+              newState.efficiencyMultiplier = Math.min(5, prev.efficiencyMultiplier + 1);
+              newState.bCoinsCollected = prev.bCoinsCollected + 1;
+              console.log(`B Coin collected! Efficiency multiplier now ${newState.efficiencyMultiplier}x!`);
+              console.log("Sigurd: 'Sweet! Now when I collect 10 kr, I actually get " + (10 * newState.efficiencyMultiplier) + " kr! Wait... that's still not enough for office rent...'");
+              break;
+              
+            case 'E':
+              newState.lives = prev.lives + 1;
+              newState.eCoinsCollected = prev.eCoinsCollected + 1;
+              console.log("E Coin collected! Extra life gained!");
+              console.log("Sigurd: 'Mom's emergency fund to the rescue again! I promise this time will be different...'");
+              break;
+              
+            case 'P':
+              newState.pCoinActive = true;
+              newState.pCoinTimeLeft = 5000; // 5 seconds at 60fps
+              newState.score = prev.score + (coin.value || 100);
+              console.log(`P Coin collected! Power mode activated for 5 seconds! +${coin.value} kr`);
+              console.log("Sigurd: 'Finally! The tax office is giving ME money instead of taking it!'");
+              break;
+              
+            case 'S':
+              console.log("S Coin collected! Free credit and level skip!");
+              console.log("Sigurd: 'Do I take the quick exit or keep building my empire? ...Who am I kidding, I need the money now!'");
+              // Auto-advance to next level
+              this.nextMap();
+              newState.level = prev.level + 1;
+              break;
+          }
+          
+          return newState;
+        });
+      }
+    });
+  }
+
+  private isColliding(rect1: { x: number; y: number; width: number; height: number }, rect2: { x: number; y: number; width: number; height: number }): boolean {
+    return rect1.x < rect2.x + rect2.width &&
+           rect1.x + rect1.width > rect2.x &&
+           rect1.y < rect2.y + rect2.height &&
+           rect1.y + rect1.height > rect2.y;
+  }
+
+  private updateMonsters() {
+    this.monsters.forEach(monster => {
+      monster.x += monster.velocityX;
+      
+      if (monster.x <= monster.patrolStartX || monster.x >= monster.patrolEndX - monster.width) {
+        monster.velocityX *= -1;
+      }
+      
+      if (monster.x < monster.patrolStartX) {
+        monster.x = monster.patrolStartX;
+      }
+      if (monster.x > monster.patrolEndX - monster.width) {
+        monster.x = monster.patrolEndX - monster.width;
+      }
+    });
+  }
+
+  private updateBombHighlighting() {
+    this.setGameState(prev => {
+      // Update bomb highlighting based on strict sequential order within groups
+      const activeGroup = prev.currentActiveGroup;
+      const completedGroups = prev.completedGroups;
+      
+      this.bombs.forEach(bomb => {
+        // Reset highlighting
+        bomb.isCorrectNext = false;
+        bomb.isInActiveGroup = false;
+        
+        if (bomb.collected) return;
+        
+        // If no active group, player can start with any bomb from available groups
+        if (activeGroup === null) {
+          if (!completedGroups.includes(bomb.group)) {
+            const groupBombs = this.bombs.filter(b => b.group === bomb.group && !b.collected);
+            // Only highlight the first available bomb in each group
+            const firstBombInGroup = groupBombs.reduce((min, current) => 
+              current.order < min.order ? current : min
+            );
+            bomb.isCorrectNext = bomb.order === firstBombInGroup.order;
+            bomb.isInActiveGroup = true;
+          }
+        }
+        // If there's an active group, enforce strict sequential order within that group
+        else if (bomb.group === activeGroup && !completedGroups.includes(bomb.group)) {
+          bomb.isInActiveGroup = true;
+          
+          // Find the next bomb in strict sequence within this group
+          const groupBombs = this.bombs.filter(b => b.group === activeGroup && !b.collected);
+          if (groupBombs.length > 0) {
+            const nextBomb = groupBombs.reduce((min, current) => 
+              current.order < min.order ? current : min
+            );
+            bomb.isCorrectNext = bomb.order === nextBomb.order;
+          }
+        }
+      });
+      
+      return prev;
+    });
+  }
+
+  private checkWinCondition() {
+    const allCollected = this.bombs.every(b => b.collected);
+    if (allCollected) {
+      // Calculate final bonus
+      this.calculateFinalBonus();
+      
+      // Move to next map or end game
+      const currentIndex = mapDefinitions.findIndex(m => m.id === this.currentMap.id);
+      if (currentIndex < mapDefinitions.length - 1) {
+        this.nextMap();
+        this.setGameState(prev => ({ ...prev, level: prev.level + 1 }));
+        console.log('Level completed! Moving to next map...');
+      } else {
+        this.setGameState(prev => ({
+          ...prev,
+          gameStatus: 'gameOver'
+        }));
+        console.log('All maps completed!');
+      }
+    }
+  }
+
+  private calculateFinalBonus() {
+    this.setGameState(prev => {
+      let bonus = 0;
+      const correctCount = prev.correctOrderCount;
+      
+      if (correctCount >= 23) {
+        bonus = 50000;
+        console.log("Sigurd's dream: 'I'm basically the Norwegian Elon Musk now!' +50,000 kr");
+      } else if (correctCount >= 22) {
+        bonus = 30000;
+        console.log("Sigurd: 'So close to greatness... story of my life' +30,000 kr");
+      } else if (correctCount >= 21) {
+        bonus = 20000;
+        console.log("Sigurd: 'At least I can afford ramen for another month' +20,000 kr");
+      } else if (correctCount >= 20) {
+        bonus = 10000;
+        console.log("Sigurd: 'Barely covers my incorporation costs...' +10,000 kr");
+      }
+      
+      return {
+        ...prev,
+        score: prev.score + bonus
+      };
+    });
+  }
+
+  public render() {
+    this.renderer.render(
+      this.currentMap,
+      this.platforms,
+      this.bombs,
+      this.monsters,
+      this.player,
+      this.specialCoins
+    );
+  }
+}

@@ -1,0 +1,114 @@
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 20 14% 4%;
+    --foreground: 210 40% 98%;
+
+    --card: 20 14% 4%;
+    --card-foreground: 210 40% 98%;
+
+    --popover: 20 14% 4%;
+    --popover-foreground: 210 40% 98%;
+
+    --primary: 47 96% 89%;
+    --primary-foreground: 20 14% 4%;
+
+    --secondary: 215 28% 17%;
+    --secondary-foreground: 210 40% 98%;
+
+    --muted: 215 28% 17%;
+    --muted-foreground: 217 33% 64%;
+
+    --accent: 142 76% 36%;
+    --accent-foreground: 210 40% 98%;
+
+    --destructive: 0 63% 31%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 217 33% 17%;
+    --input: 217 33% 17%;
+    --ring: 47 96% 89%;
+
+    --radius: 0.5rem;
+
+    --sidebar-background: 20 14% 4%;
+    --sidebar-foreground: 210 40% 98%;
+    --sidebar-primary: 47 96% 89%;
+    --sidebar-primary-foreground: 20 14% 4%;
+    --sidebar-accent: 215 28% 17%;
+    --sidebar-accent-foreground: 210 40% 98%;
+    --sidebar-border: 217 33% 17%;
+    --sidebar-ring: 47 96% 89%;
+  }
+
+  .dark {
+    --background: 20 14% 4%;
+    --foreground: 210 40% 98%;
+
+    --card: 20 14% 4%;
+    --card-foreground: 210 40% 98%;
+
+    --popover: 20 14% 4%;
+    --popover-foreground: 210 40% 98%;
+
+    --primary: 47 96% 89%;
+    --primary-foreground: 20 14% 4%;
+
+    --secondary: 215 28% 17%;
+    --secondary-foreground: 210 40% 98%;
+
+    --muted: 215 28% 17%;
+    --muted-foreground: 217 33% 64%;
+
+    --accent: 142 76% 36%;
+    --accent-foreground: 210 40% 98%;
+
+    --destructive: 0 63% 31%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 217 33% 17%;
+    --input: 217 33% 17%;
+    --ring: 47 96% 89%;
+    --sidebar-background: 20 14% 4%;
+    --sidebar-foreground: 210 40% 98%;
+    --sidebar-primary: 47 96% 89%;
+    --sidebar-primary-foreground: 20 14% 4%;
+    --sidebar-accent: 215 28% 17%;
+    --sidebar-accent-foreground: 210 40% 98%;
+    --sidebar-border: 217 33% 17%;
+    --sidebar-ring: 47 96% 89%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    background: linear-gradient(135deg, #0f0f23 0%, #1a1a2e 50%, #16213e 100%);
+    min-height: 100vh;
+  }
+}
+
+/* Subtle arcade glow effects */
+@layer utilities {
+  .arcade-glow {
+    text-shadow: 0 0 10px currentColor;
+    animation: subtle-glow 3s ease-in-out infinite alternate;
+  }
+  
+  @keyframes subtle-glow {
+    from {
+      text-shadow: 0 0 5px currentColor;
+    }
+    to {
+      text-shadow: 0 0 15px currentColor;
+    }
+  }
+}
