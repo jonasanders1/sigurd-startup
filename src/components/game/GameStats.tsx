@@ -20,7 +20,7 @@ export const DebugPanel: React.FC<DebugPanelProps> = ({ gameState }) => {
   const [isExpanded, setIsExpanded] = useState(false);
 
   return (
-    <div className="absolute right-0 top-12 z-50">
+    <div className="absolute right-[-150px] top-0 z-50">
       <Button
         variant="outline"
         size="sm"

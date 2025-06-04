@@ -1,6 +1,6 @@
-import React from 'react';
-import { Button } from '@/components/ui/button';
-import { Pause, RotateCcw, Heart } from 'lucide-react';
+import React from "react";
+import { Button } from "@/components/ui/button";
+import { Pause, RotateCcw, Heart, Minimize, Maximize } from "lucide-react";
 
 interface InGameMenuProps {
   score: number;
@@ -8,6 +8,8 @@ interface InGameMenuProps {
   lives: number;
   onPause: () => void;
   onReset: () => void;
+  toggleFullscreen: () => void;
+  isFullscreen: boolean;
 }
 
 export const InGameMenu: React.FC<InGameMenuProps> = ({
@@ -15,7 +17,9 @@ export const InGameMenu: React.FC<InGameMenuProps> = ({
   level,
   lives,
   onPause,
-  onReset
+  onReset,
+  toggleFullscreen,
+  isFullscreen,
 }) => {
   return (
     <div className="absolute inset-0 pointer-events-none">
@@ -33,29 +37,65 @@ export const InGameMenu: React.FC<InGameMenuProps> = ({
             <div className="text-accent font-bold">{level}</div>
             <div className="text-xs text-muted-foreground">LEVEL</div>
           </div>
-          <div className="w-px h-8 bg-border"></div>
+          {/* <div className="w-px h-8 bg-border"></div>
           <div className="text-center">
             <div className="flex items-center justify-center gap-1">
               {Array.from({ length: lives }, (_, i) => (
-                <Heart key={i} className="w-4 h-4 text-destructive fill-current" />
+                <Heart
+                  key={i}
+                  className="w-4 h-4 text-destructive fill-current"
+                />
               ))}
             </div>
             <div className="text-xs text-muted-foreground">LIVES</div>
-          </div>
+          </div> */}
         </div>
       </div>
 
       {/* Control Buttons */}
       <div className="absolute top-4 right-4 z-10 flex gap-2 pointer-events-auto">
-        <Button onClick={onPause} variant="outline" size="sm" className="bg-background/90 hover:bg-muted border border-border font-bold">
-          <Pause className="w-4 h-4 mr-2" />
-          PAUSE
+        <Button
+          onClick={onPause}
+          variant="outline"
+          size="sm"
+          className="bg-background/90 hover:bg-muted border border-border font-bold"
+        >
+          <Pause className="w-4 h-4" />
         </Button>
-        <Button onClick={onReset} variant="outline" size="sm" className="bg-background/90 hover:bg-muted border border-border font-bold">
-          <RotateCcw className="w-4 h-4 mr-2" />
-          RESET
+        <Button
+          onClick={onReset}
+          variant="outline"
+          size="sm"
+          className="bg-background/90 hover:bg-muted border border-border font-bold"
+        >
+          <RotateCcw className="w-4 h-4" />
         </Button>
+        <Button
+          onClick={toggleFullscreen}
+          variant="secondary"
+          size="sm"
+          className="bg-background/90 hover:bg-muted border border-border font-bold"
+        >
+          {isFullscreen ? (
+            <Minimize className="w-4 h-4" />
+          ) : (
+            <Maximize className="w-4 h-4" />
+          )}
+        </Button>
+      </div>
+      <div className="absolute bottom-4 left-4">
+        <div className="text-center flex items-center gap-1">
+          <div className="text-xs text-muted-foreground">LIVES</div>
+          <div className="flex items-center justify-center gap-1">
+            {Array.from({ length: lives }, (_, i) => (
+              <Heart
+                key={i}
+                className="w-4 h-4 text-destructive fill-current"
+              />
+            ))}
+          </div>
+        </div>
       </div>
     </div>
   );
-}; 
+};

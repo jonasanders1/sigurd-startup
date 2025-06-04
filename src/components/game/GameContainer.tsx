@@ -134,12 +134,13 @@ export const GameContainer: React.FC = () => {
   }, []);
 
   return (
-    <div className="flex flex-col items-center justify-center gap-6">
-      <DebugPanel gameState={gameState} />
-
+    <div className="flex flex-col items-center justify-center gap-6 relative">
+      {/* <DebugPanel gameState={gameState} /> */}
       <div
         ref={canvasContainerRef}
-        className={`relative bg-black rounded-lg shadow-2xl overflow-hidden border-2 border-border max-w-4xl ${
+        className={`relative bg-black ${
+          isFullscreen ? "rounded-none" : "rounded-lg"
+        } shadow-2xl overflow-hidden  ${
           isFullscreen ? "w-screen h-screen max-w-none" : ""
         }`}
       >
@@ -160,7 +161,7 @@ export const GameContainer: React.FC = () => {
         <canvas
           ref={canvasRef}
           className={`block max-w-full ${
-            isFullscreen ? "w-full h-full" : "max-w-4xl"
+            isFullscreen ? "w-full h-full" : ""
           }`}
           style={{ imageRendering: "pixelated" }}
         />
@@ -173,15 +174,14 @@ export const GameContainer: React.FC = () => {
             lives={gameState.lives}
             onPause={pauseGame}
             onReset={resetGame}
+            toggleFullscreen={toggleFullscreen}
+            isFullscreen={isFullscreen}
           />
         )}
 
         {/* Menu Screens */}
         {gameState.gameStatus !== "playing" && (
-          <GameMenu 
-            gameState={gameState} 
-            onStart={startGame}
-          />
+          <GameMenu gameState={gameState} onStart={startGame} />
         )}
 
         {gameState.pCoinActive && (
