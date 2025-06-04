@@ -6,28 +6,25 @@ import { DebugPanel } from "./GameStats";
 import { PowerModeOverlay } from "./PowerModeOverlay";
 import { GameMenu } from "./GameMenu";
 import { InGameMenu } from "./InGameMenu";
+import { useGameStore } from "@/components/stores/useGameStore";
+import { useToggleFullScreen } from "@/components/hooks/useToggleFullScreen";
 
 export const GameContainer: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const canvasContainerRef = useRef<HTMLDivElement>(null);
   const gameEngineRef = useRef<GameEngine | null>(null);
-  const [isFullscreen, setIsFullscreen] = useState(false);
-  const [gameState, setGameState] = useState({
-    score: 0,
-    lives: 3,
-    level: 1,
-    gameStatus: "menu" as "menu" | "playing" | "paused" | "gameOver",
-    currentMapId: "training",
-    efficiencyMultiplier: 1,
-    bombsCollected: [] as number[],
-    correctOrderCount: 0,
-    bCoinsCollected: 0,
-    eCoinsCollected: 0,
-    pCoinActive: false,
-    pCoinTimeLeft: 0,
-    currentActiveGroup: null,
-    completedGroups: [],
-  });
+
+  const {
+    gameStatus,
+    pCoinActive,
+    isFullscreen,
+    setIsFullscreen,
+  } = useGameStore();
+
+  const toggleFullscreen = useToggleFullScreen(
+    canvasContainerRef,
+    setIsFullscreen
+  );
 
   useEffect(() => {
     if (!canvasRef.current) return;
@@ -45,20 +42,20 @@ export const GameContainer: React.FC = () => {
       ctx,
       canvas.width,
       canvas.height,
-      setGameState
+      useGameStore.getState()
     );
 
     // Game loop
     let animationId: number;
     const gameLoop = () => {
-      if (gameEngineRef.current && gameState.gameStatus === "playing") {
+      if (gameEngineRef.current && gameStatus === "playing") {
         gameEngineRef.current.update();
         gameEngineRef.current.render();
       }
       animationId = requestAnimationFrame(gameLoop);
     };
 
-    if (gameState.gameStatus === "playing") {
+    if (gameStatus === "playing") {
       gameLoop();
     }
 
@@ -67,75 +64,11 @@ export const GameContainer: React.FC = () => {
         cancelAnimationFrame(animationId);
       }
     };
-  }, [gameState.gameStatus]);
-
-  const startGame = () => {
-    setGameState((prev) => ({ ...prev, gameStatus: "playing" }));
-    if (gameEngineRef.current) {
-      gameEngineRef.current.start();
-    }
-  };
-
-  const pauseGame = () => {
-    setGameState((prev) => ({
-      ...prev,
-      gameStatus: prev.gameStatus === "paused" ? "playing" : "paused",
-    }));
-  };
-
-  const resetGame = () => {
-    setGameState({
-      score: 0,
-      lives: 3,
-      level: 1,
-      gameStatus: "menu",
-      currentMapId: "training",
-      efficiencyMultiplier: 1,
-      bombsCollected: [],
-      correctOrderCount: 0,
-      bCoinsCollected: 0,
-      eCoinsCollected: 0,
-      pCoinActive: false,
-      pCoinTimeLeft: 0,
-      currentActiveGroup: null,
-      completedGroups: [],
-    });
-    if (gameEngineRef.current) {
-      gameEngineRef.current.reset();
-    }
-  };
-
-  const toggleFullscreen = async () => {
-    if (!canvasContainerRef.current) return;
-
-    try {
-      if (!document.fullscreenElement) {
-        await canvasContainerRef.current.requestFullscreen();
-        setIsFullscreen(true);
-      } else {
-        await document.exitFullscreen();
-        setIsFullscreen(false);
-      }
-    } catch (error) {
-      console.error("Fullscreen error:", error);
-    }
-  };
-
-  // Listen for fullscreen changes
-  useEffect(() => {
-    const handleFullscreenChange = () => {
-      setIsFullscreen(!!document.fullscreenElement);
-    };
-
-    document.addEventListener("fullscreenchange", handleFullscreenChange);
-    return () => {
-      document.removeEventListener("fullscreenchange", handleFullscreenChange);
-    };
-  }, []);
+  }, [gameStatus]);
 
   return (
     <div className="flex flex-col items-center justify-center gap-6 relative">
-      {/* <DebugPanel gameState={gameState} /> */}
+      <DebugPanel />
       <div
         ref={canvasContainerRef}
         className={`relative bg-black ${
@@ -160,33 +93,19 @@ export const GameContainer: React.FC = () => {
 
         <canvas
           ref={canvasRef}
-          className={`block max-w-full ${
-            isFullscreen ? "w-full h-full" : ""
-          }`}
+          className={`block max-w-full ${isFullscreen ? "w-full h-full" : ""}`}
           style={{ imageRendering: "pixelated" }}
         />
 
         {/* In-game UI */}
-        {gameState.gameStatus === "playing" && (
-          <InGameMenu
-            score={gameState.score}
-            level={gameState.level}
-            lives={gameState.lives}
-            onPause={pauseGame}
-            onReset={resetGame}
-            toggleFullscreen={toggleFullscreen}
-            isFullscreen={isFullscreen}
-          />
+        {gameStatus === "playing" && (
+          <InGameMenu canvasContainerRef={canvasContainerRef} />
         )}
 
         {/* Menu Screens */}
-        {gameState.gameStatus !== "playing" && (
-          <GameMenu gameState={gameState} onStart={startGame} />
-        )}
+        {gameStatus !== "playing" && <GameMenu />}
 
-        {gameState.pCoinActive && (
-          <PowerModeOverlay timeLeft={gameState.pCoinTimeLeft} />
-        )}
+        {pCoinActive && <PowerModeOverlay />}
       </div>
     </div>
   );

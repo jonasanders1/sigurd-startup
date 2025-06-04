@@ -1,26 +1,16 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { Pause, RotateCcw, Heart, Minimize, Maximize } from "lucide-react";
+import { useGameStore } from "../stores/useGameStore";
+import { useToggleFullScreen } from "../hooks/useToggleFullScreen";
 
-interface InGameMenuProps {
-  score: number;
-  level: number;
-  lives: number;
-  onPause: () => void;
-  onReset: () => void;
-  toggleFullscreen: () => void;
-  isFullscreen: boolean;
-}
 
-export const InGameMenu: React.FC<InGameMenuProps> = ({
-  score,
-  level,
-  lives,
-  onPause,
-  onReset,
-  toggleFullscreen,
-  isFullscreen,
-}) => {
+
+export const InGameMenu: React.FC<{ canvasContainerRef: React.RefObject<HTMLDivElement> }> = ({ canvasContainerRef }) => {
+  const { score, level, lives, pauseGame, resetGame, isFullscreen, setIsFullscreen } = useGameStore();
+  
+  const toggleFullscreen = useToggleFullScreen(canvasContainerRef, setIsFullscreen);
+  
   return (
     <div className="absolute inset-0 pointer-events-none">
       {/* Top Bar */}
@@ -37,25 +27,14 @@ export const InGameMenu: React.FC<InGameMenuProps> = ({
             <div className="text-accent font-bold">{level}</div>
             <div className="text-xs text-muted-foreground">LEVEL</div>
           </div>
-          {/* <div className="w-px h-8 bg-border"></div>
-          <div className="text-center">
-            <div className="flex items-center justify-center gap-1">
-              {Array.from({ length: lives }, (_, i) => (
-                <Heart
-                  key={i}
-                  className="w-4 h-4 text-destructive fill-current"
-                />
-              ))}
-            </div>
-            <div className="text-xs text-muted-foreground">LIVES</div>
-          </div> */}
+  
         </div>
       </div>
 
       {/* Control Buttons */}
       <div className="absolute top-4 right-4 z-10 flex gap-2 pointer-events-auto">
         <Button
-          onClick={onPause}
+          onClick={pauseGame}
           variant="outline"
           size="sm"
           className="bg-background/90 hover:bg-muted border border-border font-bold"
@@ -63,7 +42,7 @@ export const InGameMenu: React.FC<InGameMenuProps> = ({
           <Pause className="w-4 h-4" />
         </Button>
         <Button
-          onClick={onReset}
+          onClick={resetGame}
           variant="outline"
           size="sm"
           className="bg-background/90 hover:bg-muted border border-border font-bold"

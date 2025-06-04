@@ -2,6 +2,7 @@ import { MapDefinition, getMapById, mapDefinitions } from './MapDefinitions';
 import { Physics } from './Physics';
 import { CollisionDetection } from './CollisionDetection';
 import { Renderer } from './Renderer';
+import { useGameStore } from '@/components/stores/useGameStore';
 
 export interface GameState {
   score: number;
@@ -77,7 +78,7 @@ export interface SpecialCoin {
 export class GameEngine {
   private width: number;
   private height: number;
-  private setGameState: React.Dispatch<React.SetStateAction<GameState>>;
+  private store: ReturnType<typeof useGameStore.getState>;
   
   private currentMap: MapDefinition;
   private player: Player;
@@ -100,11 +101,11 @@ export class GameEngine {
     ctx: CanvasRenderingContext2D, 
     width: number, 
     height: number, 
-    setGameState: React.Dispatch<React.SetStateAction<GameState>>
+    store: ReturnType<typeof useGameStore.getState>
   ) {
     this.width = width;
     this.height = height;
-    this.setGameState = setGameState;
+    this.store = store;
 
     // Initialize modules
     this.physics = new Physics();
@@ -153,25 +154,23 @@ export class GameEngine {
     const newMap = getMapById(mapId);
     if (newMap) {
       this.loadMap(newMap);
-      this.setGameState(prev => ({ 
-        ...prev, 
-        currentMapId: mapId,
-        bombsCollected: [],
-        correctOrderCount: 0,
-        bCoinsCollected: 0,
-        eCoinsCollected: 0,
-        pCoinActive: false,
-        pCoinTimeLeft: 0,
-        currentActiveGroup: null,
-        completedGroups: []
-      }));
+      // Don't reset game state when switching maps
+      this.store.setGameStatus('playing');
     }
   }
 
   public nextMap() {
     const currentIndex = mapDefinitions.findIndex(m => m.id === this.currentMap.id);
-    const nextIndex = (currentIndex + 1) % mapDefinitions.length;
-    this.switchToMap(mapDefinitions[nextIndex].id);
+    if (currentIndex < mapDefinitions.length - 1) {
+      const nextMap = mapDefinitions[currentIndex + 1];
+      this.switchToMap(nextMap.id);
+      // Increment level when moving to next map
+      this.store.setLevel(this.store.getState().level + 1);
+      console.log('Level completed! Moving to next map...');
+    } else {
+      this.store.setGameStatus('gameOver');
+      console.log('All maps completed!');
+    }
   }
 
   private generateBombsFromMap(mapDef: MapDefinition): Bomb[] {
@@ -237,18 +236,7 @@ export class GameEngine {
     this.isJumpPressed = false;
     this.jumpHoldTime = 0;
     this.pCoinColorIndex = 0;
-    this.setGameState(prev => ({
-      ...prev,
-      bombsCollected: [],
-      correctOrderCount: 0,
-      efficiencyMultiplier: 1,
-      bCoinsCollected: 0,
-      eCoinsCollected: 0,
-      pCoinActive: false,
-      pCoinTimeLeft: 0,
-      currentActiveGroup: null,
-      completedGroups: []
-    }));
+    this.store.resetGame();
   }
 
   public update() {
@@ -256,14 +244,14 @@ export class GameEngine {
     const jumpResult = this.physics.updatePlayerMovement(
       this.player, 
       this.keys, 
-      this.jumpHoldTime, 
-      this.isJumpPressed
+      this.jumpHoldTime
     );
     this.jumpHoldTime = jumpResult.newJumpHoldTime;
-    this.isJumpPressed = jumpResult.newIsJumpPressed;
+    const wasJumpPressed = this.isJumpPressed;
+    this.isJumpPressed = this.keys['ArrowUp'] || this.keys['KeyW'];
     
     // Update P coin color when jumping or hitting walls
-    if (jumpResult.newIsJumpPressed && !this.isJumpPressed) {
+    if (this.isJumpPressed && !wasJumpPressed) {
       this.updatePCoinColor();
     }
     
@@ -277,8 +265,8 @@ export class GameEngine {
     this.updateMonsters();
     
     // Check collisions
-    this.collisionDetection.checkBombCollisions(this.player, this.bombs, this.setGameState);
-    this.collisionDetection.checkMonsterCollisions(this.player, this.monsters, this.currentMap, this.setGameState);
+    this.collisionDetection.checkBombCollisions(this.player, this.bombs, this.store);
+    this.collisionDetection.checkMonsterCollisions(this.player, this.monsters, this.currentMap, this.store);
     this.checkSpecialCoinCollisions();
     
     // Update bomb highlighting
@@ -302,45 +290,38 @@ export class GameEngine {
   }
 
   private updateSpecialCoins() {
-    this.setGameState(prev => {
-      // Check for B coin spawning (every 5000 points)
-      const shouldSpawnBCoin = Math.floor(prev.score / 5000) > prev.bCoinsCollected && 
-                              prev.bCoinsCollected < 5 &&
-                              !this.specialCoins.some(c => c.type === 'B' && !c.collected);
-      
-      if (shouldSpawnBCoin) {
-        this.spawnSpecialCoin('B');
-      }
+    const state = this.store.getState();
+    
+    if (state.pCoinActive && state.pCoinTimeLeft > 0) {
+      this.store.updateSpecialCoins();
+    }
 
-      // Check for E coin spawning (after 8 B coins, or earlier if player lost lives)
-      const eCoinsNeeded = Math.max(1, 8 - (3 - prev.lives)); // Fewer B coins needed if lives lost
-      const shouldSpawnECoin = prev.bCoinsCollected >= eCoinsNeeded && 
-                              !this.specialCoins.some(c => c.type === 'E' && !c.collected);
-      
-      if (shouldSpawnECoin) {
-        this.spawnSpecialCoin('E');
-      }
+    // Check for B coin spawning (every 5000 points)
+    const shouldSpawnBCoin = Math.floor(state.score / 5000) > state.bCoinsCollected && 
+                            state.bCoinsCollected < 5 &&
+                            !this.specialCoins.some(c => c.type === 'B' && !c.collected);
+    
+    if (shouldSpawnBCoin) {
+      this.spawnSpecialCoin('B');
+    }
 
-      // Check for P coin spawning (10 lit bombs OR 20 total bombs)
-      const litBombs = this.bombs.filter(b => b.collected && b.isCorrectNext).length;
-      const shouldSpawnPCoin = (litBombs >= 10 || prev.bombsCollected.length >= 20) && 
-                              !this.specialCoins.some(c => c.type === 'P' && !c.collected);
-      
-      if (shouldSpawnPCoin) {
-        this.spawnSpecialCoin('P');
-      }
+    // Check for E coin spawning (after 8 B coins, or earlier if player lost lives)
+    const eCoinsNeeded = Math.max(1, 8 - (3 - state.lives));
+    const shouldSpawnECoin = state.bCoinsCollected >= eCoinsNeeded && 
+                            !this.specialCoins.some(c => c.type === 'E' && !c.collected);
+    
+    if (shouldSpawnECoin) {
+      this.spawnSpecialCoin('E');
+    }
 
-      // Update P coin power mode timer
-      let newPCoinTimeLeft = prev.pCoinTimeLeft;
-      if (prev.pCoinActive && newPCoinTimeLeft > 0) {
-        newPCoinTimeLeft -= 16; // Roughly 60fps, so ~1 second per 60 frames
-        if (newPCoinTimeLeft <= 0) {
-          return { ...prev, pCoinActive: false, pCoinTimeLeft: 0 };
-        }
-      }
-
-      return { ...prev, pCoinTimeLeft: newPCoinTimeLeft };
-    });
+    // Check for P coin spawning (10 lit bombs OR 20 total bombs)
+    const litBombs = this.bombs.filter(b => b.collected && b.isCorrectNext).length;
+    const shouldSpawnPCoin = (litBombs >= 10 || state.bombsCollected.length >= 20) && 
+                            !this.specialCoins.some(c => c.type === 'P' && !c.collected);
+    
+    if (shouldSpawnPCoin) {
+      this.spawnSpecialCoin('P');
+    }
   }
 
   private spawnSpecialCoin(type: 'B' | 'E' | 'P' | 'S') {
@@ -374,44 +355,7 @@ export class GameEngine {
     this.specialCoins.forEach(coin => {
       if (!coin.collected && this.isColliding(this.player, coin)) {
         coin.collected = true;
-        
-        this.setGameState(prev => {
-          const newState = { ...prev };
-          
-          switch (coin.type) {
-            case 'B':
-              newState.efficiencyMultiplier = Math.min(5, prev.efficiencyMultiplier + 1);
-              newState.bCoinsCollected = prev.bCoinsCollected + 1;
-              console.log(`B Coin collected! Efficiency multiplier now ${newState.efficiencyMultiplier}x!`);
-              console.log("Sigurd: 'Sweet! Now when I collect 10 kr, I actually get " + (10 * newState.efficiencyMultiplier) + " kr! Wait... that's still not enough for office rent...'");
-              break;
-              
-            case 'E':
-              newState.lives = prev.lives + 1;
-              newState.eCoinsCollected = prev.eCoinsCollected + 1;
-              console.log("E Coin collected! Extra life gained!");
-              console.log("Sigurd: 'Mom's emergency fund to the rescue again! I promise this time will be different...'");
-              break;
-              
-            case 'P':
-              newState.pCoinActive = true;
-              newState.pCoinTimeLeft = 5000; // 5 seconds at 60fps
-              newState.score = prev.score + (coin.value || 100);
-              console.log(`P Coin collected! Power mode activated for 5 seconds! +${coin.value} kr`);
-              console.log("Sigurd: 'Finally! The tax office is giving ME money instead of taking it!'");
-              break;
-              
-            case 'S':
-              console.log("S Coin collected! Free credit and level skip!");
-              console.log("Sigurd: 'Do I take the quick exit or keep building my empire? ...Who am I kidding, I need the money now!'");
-              // Auto-advance to next level
-              this.nextMap();
-              newState.level = prev.level + 1;
-              break;
-          }
-          
-          return newState;
-        });
+        this.store.collectSpecialCoin(coin.type);
       }
     });
   }
@@ -441,46 +385,42 @@ export class GameEngine {
   }
 
   private updateBombHighlighting() {
-    this.setGameState(prev => {
-      // Update bomb highlighting based on strict sequential order within groups
-      const activeGroup = prev.currentActiveGroup;
-      const completedGroups = prev.completedGroups;
+    const state = this.store.getState();
+    const activeGroup = state.currentActiveGroup;
+    const completedGroups = state.completedGroups;
+    
+    this.bombs.forEach(bomb => {
+      // Reset highlighting
+      bomb.isCorrectNext = false;
+      bomb.isInActiveGroup = false;
       
-      this.bombs.forEach(bomb => {
-        // Reset highlighting
-        bomb.isCorrectNext = false;
-        bomb.isInActiveGroup = false;
-        
-        if (bomb.collected) return;
-        
-        // If no active group, player can start with any bomb from available groups
-        if (activeGroup === null) {
-          if (!completedGroups.includes(bomb.group)) {
-            const groupBombs = this.bombs.filter(b => b.group === bomb.group && !b.collected);
-            // Only highlight the first available bomb in each group
-            const firstBombInGroup = groupBombs.reduce((min, current) => 
-              current.order < min.order ? current : min
-            );
-            bomb.isCorrectNext = bomb.order === firstBombInGroup.order;
-            bomb.isInActiveGroup = true;
-          }
-        }
-        // If there's an active group, enforce strict sequential order within that group
-        else if (bomb.group === activeGroup && !completedGroups.includes(bomb.group)) {
+      if (bomb.collected) return;
+      
+      // If no active group, player can start with any bomb from available groups
+      if (activeGroup === null) {
+        if (!completedGroups.includes(bomb.group)) {
+          const groupBombs = this.bombs.filter(b => b.group === bomb.group && !b.collected);
+          // Only highlight the first available bomb in each group
+          const firstBombInGroup = groupBombs.reduce((min, current) => 
+            current.order < min.order ? current : min
+          );
+          bomb.isCorrectNext = bomb.order === firstBombInGroup.order;
           bomb.isInActiveGroup = true;
-          
-          // Find the next bomb in strict sequence within this group
-          const groupBombs = this.bombs.filter(b => b.group === activeGroup && !b.collected);
-          if (groupBombs.length > 0) {
-            const nextBomb = groupBombs.reduce((min, current) => 
-              current.order < min.order ? current : min
-            );
-            bomb.isCorrectNext = bomb.order === nextBomb.order;
-          }
         }
-      });
-      
-      return prev;
+      }
+      // If there's an active group, enforce strict sequential order within that group
+      else if (bomb.group === activeGroup && !completedGroups.includes(bomb.group)) {
+        bomb.isInActiveGroup = true;
+        
+        // Find the next bomb in strict sequence within this group
+        const groupBombs = this.bombs.filter(b => b.group === activeGroup && !b.collected);
+        if (groupBombs.length > 0) {
+          const nextBomb = groupBombs.reduce((min, current) => 
+            current.order < min.order ? current : min
+          );
+          bomb.isCorrectNext = bomb.order === nextBomb.order;
+        }
+      }
     });
   }
 
@@ -494,42 +434,17 @@ export class GameEngine {
       const currentIndex = mapDefinitions.findIndex(m => m.id === this.currentMap.id);
       if (currentIndex < mapDefinitions.length - 1) {
         this.nextMap();
-        this.setGameState(prev => ({ ...prev, level: prev.level + 1 }));
         console.log('Level completed! Moving to next map...');
       } else {
-        this.setGameState(prev => ({
-          ...prev,
-          gameStatus: 'gameOver'
-        }));
+        this.store.setGameStatus('gameOver');
         console.log('All maps completed!');
       }
     }
   }
 
   private calculateFinalBonus() {
-    this.setGameState(prev => {
-      let bonus = 0;
-      const correctCount = prev.correctOrderCount;
-      
-      if (correctCount >= 23) {
-        bonus = 50000;
-        console.log("Sigurd's dream: 'I'm basically the Norwegian Elon Musk now!' +50,000 kr");
-      } else if (correctCount >= 22) {
-        bonus = 30000;
-        console.log("Sigurd: 'So close to greatness... story of my life' +30,000 kr");
-      } else if (correctCount >= 21) {
-        bonus = 20000;
-        console.log("Sigurd: 'At least I can afford ramen for another month' +20,000 kr");
-      } else if (correctCount >= 20) {
-        bonus = 10000;
-        console.log("Sigurd: 'Barely covers my incorporation costs...' +10,000 kr");
-      }
-      
-      return {
-        ...prev,
-        score: prev.score + bonus
-      };
-    });
+    this.store.updateScore(50000);
+    console.log("Sigurd's dream: 'I'm basically the Norwegian Elon Musk now!' +50,000 kr");
   }
 
   public render() {

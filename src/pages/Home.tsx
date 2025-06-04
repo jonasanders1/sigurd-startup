@@ -19,7 +19,7 @@ const socialLinks = [
 
 const Home = () => {
   return (
-    <div >
+    <div>
       {/* Hero Section */}
       <div className="h-[85vh] grid grid-cols-3 grid-rows-[60px_1fr_90px] relative items-center">
         {/* Social Links: Row 1, Col 3 */}

@@ -13,14 +13,25 @@ import { Label } from "@/components/ui/label";
 import { Key, Volume2 } from "lucide-react";
 import { useState } from "react";
 import PageTitle from "@/components/PageTitle";
+import { useAudioStore } from "@/components/stores/useAudioStore";
+import Sigurd from "@/assets/sounds/sigurd.mp3";
 
 const Settings = () => {
-  const [masterVolume, setMasterVolume] = useState([75]);
-  const [musicVolume, setMusicVolume] = useState([60]);
-  const [sfxVolume, setSfxVolume] = useState([80]);
-  const [isMasterMuted, setIsMasterMuted] = useState(false);
-  const [isMusicMuted, setIsMusicMuted] = useState(false);
-  const [isSfxMuted, setIsSfxMuted] = useState(false);
+  const {
+    masterVolume,
+    musicVolume,
+    sfxVolume,
+    isMasterMuted,
+    isMusicMuted,
+    isSfxMuted,
+    setMasterVolume,
+    setMusicVolume,
+    setSfxVolume,
+    toggleMasterMute,
+    toggleMusicMute,
+    toggleSfxMute,
+    playSound
+  } = useAudioStore();
 
   const keyBinds = [
     {
@@ -109,11 +120,11 @@ const Settings = () => {
                   </Label>
                   <div className="flex items-center space-x-3">
                     <span className="text-muted-foreground text-sm min-w-[3ch]">
-                      {isMasterMuted ? "0" : masterVolume[0]}%
+                      {isMasterMuted ? "0" : masterVolume}%
                     </span>
                     <Switch
                       checked={!isMasterMuted}
-                      onCheckedChange={(checked) => setIsMasterMuted(!checked)}
+                      onCheckedChange={toggleMasterMute}
                       aria-label="Skru av/på hovedlyd"
                     />
                   </div>
@@ -123,8 +134,8 @@ const Settings = () => {
                   min={0}
                   max={100}
                   step={1}
-                  value={isMasterMuted ? [0] : masterVolume}
-                  onValueChange={setMasterVolume}
+                  value={[isMasterMuted ? 0 : masterVolume]}
+                  onValueChange={(value) => setMasterVolume(value[0])}
                   disabled={isMasterMuted}
                   className="w-full"
                 />
@@ -141,11 +152,14 @@ const Settings = () => {
                   </Label>
                   <div className="flex items-center space-x-3">
                     <span className="text-muted-foreground text-sm min-w-[3ch]">
-                      {isMusicMuted ? "0" : musicVolume[0]}%
+                      {isMusicMuted ? "0" : musicVolume}%
                     </span>
                     <Switch
                       checked={!isMusicMuted}
-                      onCheckedChange={(checked) => setIsMusicMuted(!checked)}
+                      onCheckedChange={(checked) => {
+                        toggleMusicMute();
+                        if (checked) playSound(Sigurd);
+                      }}
                       aria-label="Skru av/på musikk"
                     />
                   </div>
@@ -155,8 +169,8 @@ const Settings = () => {
                   min={0}
                   max={100}
                   step={1}
-                  value={isMusicMuted ? [0] : musicVolume}
-                  onValueChange={setMusicVolume}
+                  value={[isMusicMuted ? 0 : musicVolume]}
+                  onValueChange={(value) => setMusicVolume(value[0])}
                   disabled={isMusicMuted}
                   className="w-full"
                 />
@@ -173,11 +187,11 @@ const Settings = () => {
                   </Label>
                   <div className="flex items-center space-x-3">
                     <span className="text-muted-foreground text-sm min-w-[3ch]">
-                      {isSfxMuted ? "0" : sfxVolume[0]}%
+                      {isSfxMuted ? "0" : sfxVolume}%
                     </span>
                     <Switch
                       checked={!isSfxMuted}
-                      onCheckedChange={(checked) => setIsSfxMuted(!checked)}
+                      onCheckedChange={toggleSfxMute}
                       aria-label="Skru av/på lydeffekter"
                     />
                   </div>
@@ -187,8 +201,8 @@ const Settings = () => {
                   min={0}
                   max={100}
                   step={1}
-                  value={isSfxMuted ? [0] : sfxVolume}
-                  onValueChange={setSfxVolume}
+                  value={[isSfxMuted ? 0 : sfxVolume]}
+                  onValueChange={(value) => setSfxVolume(value[0])}
                   disabled={isSfxMuted}
                   className="w-full"
                 />

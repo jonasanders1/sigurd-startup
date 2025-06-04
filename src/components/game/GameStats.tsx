@@ -1,39 +1,26 @@
 import React, { useState } from "react";
+import { useGameStore } from "@/components/stores/useGameStore";
 import { Button } from "@/components/ui/button";
-import { ChevronDown, ChevronUp, Bug } from "lucide-react";
+import { ChevronDown, ChevronUp } from "lucide-react";
 
-interface DebugPanelProps {
-  gameState: {
-    bombsCollected: number[];
-    correctOrderCount: number;
-    currentActiveGroup: string | null;
-    completedGroups: string[];
-    efficiencyMultiplier: number;
-    bCoinsCollected: number;
-    eCoinsCollected: number;
-    pCoinActive: boolean;
-    pCoinTimeLeft: number;
-  };
-}
-
-export const DebugPanel: React.FC<DebugPanelProps> = ({ gameState }) => {
+export const DebugPanel = () => {
   const [isExpanded, setIsExpanded] = useState(false);
+  const gameState = useGameStore();
 
   return (
     <div className="absolute right-[-150px] top-0 z-50">
       <Button
+        onClick={() => setIsExpanded(!isExpanded)}
         variant="outline"
         size="sm"
         className="bg-background/80 backdrop-blur-sm border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground"
-        onClick={() => setIsExpanded(!isExpanded)}
       >
-        <Bug className="w-4 h-4 mr-2" />
-        Debug
         {isExpanded ? (
-          <ChevronUp className="w-4 h-4 ml-2" />
+          <ChevronUp className="w-4 h-4 mr-2" />
         ) : (
-          <ChevronDown className="w-4 h-4 ml-2" />
+          <ChevronDown className="w-4 h-4 mr-2" />
         )}
+        Debug Panel
       </Button>
 
       {isExpanded && (

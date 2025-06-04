@@ -1,24 +1,23 @@
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Play } from "lucide-react";
+import { useGameStore } from "@/components/stores/useGameStore";
 
-interface GameMenuProps {
-  gameState: {
-    gameStatus: "menu" | "paused" | "gameOver";
-    score: number;
-    level: number;
-    correctOrderCount: number;
-    completedGroups: string[];
-    efficiencyMultiplier: number;
-    bCoinsCollected: number;
-    eCoinsCollected: number;
-  };
-  onStart: () => void;
-}
-
-export const GameMenu: React.FC<GameMenuProps> = ({ gameState, onStart }) => {
+export const GameMenu: React.FC = () => {
   const [currentTip, setCurrentTip] = useState(0);
   const [isTipVisible, setIsTipVisible] = useState(true);
+
+  const {
+    gameStatus,
+    score,
+    correctOrderCount,
+    completedGroups,
+    efficiencyMultiplier,
+    bCoinsCollected,
+    eCoinsCollected,
+    startGame,
+    isFullscreen,
+  } = useGameStore();
 
   const entrepreneurTips = [
     "Kaffekoppene = liv. Ikke la dem gå tomme!",
@@ -49,7 +48,7 @@ export const GameMenu: React.FC<GameMenuProps> = ({ gameState, onStart }) => {
   return (
     <div className="absolute inset-0 bg-background/95 backdrop-blur-sm flex items-center justify-center">
       <div className="text-center text-foreground font-mono">
-        {gameState.gameStatus === "menu" && (
+        {gameStatus === "menu" && (
           <div className="flex flex-col items-center justify-center gap-4">
             <h2 className="text-3xl font-bold text-primary">
               SIGURD'S STARTUP ADVENTURE
@@ -65,8 +64,8 @@ export const GameMenu: React.FC<GameMenuProps> = ({ gameState, onStart }) => {
                 {entrepreneurTips[currentTip]}
               </p>
             </div>
-            <Button 
-              onClick={onStart} 
+            <Button
+              onClick={startGame}
               className="bg-accent hover:bg-accent/90 text-accent-foreground font-bold"
             >
               <Play className="w-4 h-4 mr-2" />
@@ -74,16 +73,14 @@ export const GameMenu: React.FC<GameMenuProps> = ({ gameState, onStart }) => {
             </Button>
           </div>
         )}
-        {gameState.gameStatus === "paused" && (
+        {gameStatus === "paused" && (
           <div className="flex flex-col items-center justify-center gap-4">
-            <h2 className="text-3xl font-bold text-primary">
-              GAME PAUSED
-            </h2>
+            <h2 className="text-3xl font-bold text-primary">GAME PAUSED</h2>
             <p className="text-lg text-muted-foreground">
               Press Resume to continue Sigurd's journey
             </p>
-            <Button 
-              onClick={onStart} 
+            <Button
+              onClick={startGame}
               className="bg-accent hover:bg-accent/90 text-accent-foreground font-bold"
             >
               <Play className="w-4 h-4 mr-2" />
@@ -91,29 +88,27 @@ export const GameMenu: React.FC<GameMenuProps> = ({ gameState, onStart }) => {
             </Button>
           </div>
         )}
-        {gameState.gameStatus === "gameOver" && (
+        {gameStatus === "gameOver" && (
           <div className="flex flex-col items-center justify-center gap-4">
-            <h2 className="text-3xl font-bold text-destructive">
-              GAME OVER
-            </h2>
+            <h2 className="text-3xl font-bold text-destructive">GAME OVER</h2>
             <p className="text-lg mb-2 text-primary">
-              Final Score: {gameState.score.toLocaleString()} kr
+              Final Score: {score.toLocaleString()} kr
             </p>
             <p className="text-sm mb-2 text-muted-foreground">
-              Correct Order: {gameState.correctOrderCount}/24
+              Correct Order: {correctOrderCount}/24
             </p>
             <p className="text-sm mb-2 text-muted-foreground">
-              Groups Completed: {gameState.completedGroups.length}/6
+              Groups Completed: {completedGroups.length}/6
             </p>
             <p className="text-sm mb-2 text-muted-foreground">
-              Efficiency: {gameState.efficiencyMultiplier}x
+              Efficiency: {efficiencyMultiplier}x
             </p>
             <p className="text-sm mb-2 text-muted-foreground">
-              Special Coins: B:{gameState.bCoinsCollected} E:
-              {gameState.eCoinsCollected}
+              Special Coins: B:{bCoinsCollected} E:
+              {eCoinsCollected}
             </p>
-            <Button 
-              onClick={onStart} 
+            <Button
+              onClick={startGame}
               className="bg-accent hover:bg-accent/90 text-accent-foreground font-bold"
             >
               <Play className="w-4 h-4 mr-2" />
