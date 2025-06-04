@@ -21,7 +21,7 @@ const Home = () => {
   return (
     <div >
       {/* Hero Section */}
-      <div className="h-[90vh] grid grid-cols-3 grid-rows-[60px_1fr_90px] relative items-center">
+      <div className="h-[85vh] grid grid-cols-3 grid-rows-[60px_1fr_90px] relative items-center">
         {/* Social Links: Row 1, Col 3 */}
         <div className="flex gap-6 justify-center col-start-3 row-start-1 ">
           {socialLinks.map((link) => (

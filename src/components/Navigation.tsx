@@ -1,6 +1,7 @@
 import { Link, useLocation } from "react-router-dom";
 import { Home, Settings, List, Joystick } from "lucide-react";
 import { cn } from "@/lib/utils";
+import Logo from "@/assets/logo.png";
 
 const Navigation = () => {
   const location = useLocation();
@@ -13,7 +14,10 @@ const Navigation = () => {
   ];
 
   const formatLabel = (label: string) => {
-    return label.length > 5 ? label.slice(0, 5) + "." : label;
+    if (document.documentElement.clientWidth < 768) {
+      return label.length > 5 ? label.slice(0, 5) + "." : label;
+    }
+    return label;
   };
 
   return (
@@ -32,7 +36,7 @@ const Navigation = () => {
             to="/"
             className="hidden md:block text-xl font-bold text-primary font-mono tracking-wider"
           >
-            SIGURD STARTUP
+            <img src={Logo} alt="Sigurd Startup" width={150} />
           </Link>
           <div className="flex justify-between w-full md:justify-end md:space-x-6">
             {navItems.map(({ path, label, icon: Icon }) => (
