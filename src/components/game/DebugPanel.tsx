@@ -8,7 +8,7 @@ export const DebugPanel = () => {
   const gameState = useGameStore();
 
   return (
-    <div className="absolute right-[-150px] top-0 z-50">
+    <div className="absolute right-2 top-0 z-50">
       <Button
         onClick={() => setIsExpanded(!isExpanded)}
         variant="outline"

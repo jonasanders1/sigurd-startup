@@ -1,16 +1,27 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { Pause, RotateCcw, Heart, Minimize, Maximize } from "lucide-react";
-import { useGameStore } from "../stores/useGameStore";
-import { useToggleFullScreen } from "../hooks/useToggleFullScreen";
+import { useGameStore } from "../../stores/useGameStore";
+import { useToggleFullScreen } from "../../hooks/useToggleFullScreen";
 
+export const InGameMenu: React.FC<{
+  canvasContainerRef: React.RefObject<HTMLDivElement>;
+}> = ({ canvasContainerRef }) => {
+  const {
+    score,
+    level,
+    lives,
+    pauseGame,
+    resetGame,
+    isFullscreen,
+    setIsFullscreen,
+  } = useGameStore();
 
+  const toggleFullscreen = useToggleFullScreen(
+    canvasContainerRef,
+    setIsFullscreen
+  );
 
-export const InGameMenu: React.FC<{ canvasContainerRef: React.RefObject<HTMLDivElement> }> = ({ canvasContainerRef }) => {
-  const { score, level, lives, pauseGame, resetGame, isFullscreen, setIsFullscreen } = useGameStore();
-  
-  const toggleFullscreen = useToggleFullScreen(canvasContainerRef, setIsFullscreen);
-  
   return (
     <div className="absolute inset-0 pointer-events-none">
       {/* Top Bar */}
@@ -27,7 +38,6 @@ export const InGameMenu: React.FC<{ canvasContainerRef: React.RefObject<HTMLDivE
             <div className="text-accent font-bold">{level}</div>
             <div className="text-xs text-muted-foreground">LEVEL</div>
           </div>
-  
         </div>
       </div>
 

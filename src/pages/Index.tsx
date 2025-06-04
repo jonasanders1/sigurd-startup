@@ -1,5 +1,3 @@
-import React from "react";
-import Navigation from "@/components/Navigation";
 import { GameContainer } from "@/components/game/GameContainer";
 import Rules from "@/components/game/Rules";
 import PageTitle from "@/components/PageTitle";

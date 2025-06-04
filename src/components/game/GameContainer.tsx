@@ -2,10 +2,10 @@ import React, { useRef, useEffect, useState } from "react";
 import { GameEngine } from "./GameEngine";
 import { Button } from "@/components/ui/button";
 import { Maximize, Minimize } from "lucide-react";
-import { DebugPanel } from "./GameStats";
+import { DebugPanel } from "./DebugPanel";
 import { PowerModeOverlay } from "./PowerModeOverlay";
 import { GameMenu } from "./GameMenu";
-import { InGameMenu } from "./InGameMenu";
+import { InGameMenu } from "./ui-screens/InGameMenu";
 import { useGameStore } from "@/components/stores/useGameStore";
 import { useToggleFullScreen } from "@/components/hooks/useToggleFullScreen";
 
@@ -77,19 +77,7 @@ export const GameContainer: React.FC = () => {
           isFullscreen ? "w-screen h-screen max-w-none" : ""
         }`}
       >
-        {/* Fullscreen Toggle Button */}
-        <Button
-          onClick={toggleFullscreen}
-          variant="secondary"
-          size="sm"
-          className="absolute top-4 right-4 z-10 bg-background/90 hover:bg-muted border border-border font-bold"
-        >
-          {isFullscreen ? (
-            <Minimize className="w-4 h-4" />
-          ) : (
-            <Maximize className="w-4 h-4" />
-          )}
-        </Button>
+        
 
         <canvas
           ref={canvasRef}
@@ -102,8 +90,9 @@ export const GameContainer: React.FC = () => {
           <InGameMenu canvasContainerRef={canvasContainerRef} />
         )}
 
+
         {/* Menu Screens */}
-        {gameStatus !== "playing" && <GameMenu />}
+        {gameStatus !== "playing" && <GameMenu canvasContainerRef={canvasContainerRef} />}
 
         {pCoinActive && <PowerModeOverlay />}
       </div>
