@@ -1,11 +1,13 @@
 import { create } from "zustand";
+import { BonusType, GameStatus } from "../types/Game";
 import { GameStore, BombCollected } from "@/components/types/Game";
 
 const INITIAL_STATE = {
   score: 0,
   lives: 3,
+  bonus: BonusType.NONE,
   level: 1,
-  gameStatus: "menu" as const,
+  gameStatus: GameStatus.MENU,
   currentMapId: "training",
   efficiencyMultiplier: 1,
   bombsCollected: [] as BombCollected[],
@@ -24,33 +26,50 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
   // Game status actions
   setGameStatus: (status) => set({ gameStatus: status }),
-  startGame: () => set({ gameStatus: "playing" }),
+  startGame: () => set({ gameStatus: GameStatus.PLAYING }),
   pauseGame: () =>
     set((state) => ({
-      gameStatus: state.gameStatus === "paused" ? "playing" : "paused",
+      gameStatus:
+        state.gameStatus === GameStatus.PAUSED
+          ? GameStatus.PLAYING
+          : GameStatus.PAUSED,
     })),
-  continueGame: () => set({ gameStatus: "playing" }),
+  continueGame: () => set({ gameStatus: GameStatus.PLAYING }),
 
   // Player state actions
-  updateScore: (points) => set((state) => ({ score: state.score + points })),
+  updateScore: (points) =>
+    set((state) => ({ score: state.score + points + state.bonus })),
+  updateBonus: (points) => set((state) => ({ bonus: state.bonus + points })),
+
+  // Reset actions
+  resetCorrectOrderCount: () => set({ correctOrderCount: 0 }),
+  resetBonus: () => set({ bonus: 0 }),
+  resetGame: () =>
+    set((state) => ({
+      ...INITIAL_STATE,
+      level: state.level,
+      score: state.score,
+      currentMapId: state.currentMapId,
+      gameStatus: GameStatus.PLAYING,
+    })),
+
   loseLife: () => set((state) => ({ lives: Math.max(0, state.lives - 1) })),
   gainLife: () => set((state) => ({ lives: state.lives + 1 })),
   setLevel: (level) => set({ level }),
 
   // Bomb collection actions
-  addBombCollected: (bomb: BombCollected) => 
-    set((state) => ({ 
-      bombsCollected: [...state.bombsCollected, bomb] 
+  addBombCollected: (bomb: BombCollected) =>
+    set((state) => ({
+      bombsCollected: [...state.bombsCollected, bomb],
     })),
-  incrementCorrectOrder: () => 
-    set((state) => ({ 
-      correctOrderCount: state.correctOrderCount + 1 
+  incrementCorrectOrder: () =>
+    set((state) => ({
+      correctOrderCount: state.correctOrderCount + 1,
     })),
-  setActiveGroup: (group: number | null) => 
-    set({ currentActiveGroup: group }),
-  addCompletedGroup: (group: number) => 
-    set((state) => ({ 
-      completedGroups: [...state.completedGroups, group] 
+  setActiveGroup: (group: number | null) => set({ currentActiveGroup: group }),
+  addCompletedGroup: (group: number) =>
+    set((state) => ({
+      completedGroups: [...state.completedGroups, group],
     })),
 
   // Special coin actions
@@ -83,13 +102,6 @@ export const useGameStore = create<GameStore>((set, get) => ({
       }
     }),
 
-  // Game state management
-  resetGame: () => set((state) => ({
-    ...INITIAL_STATE,
-    level: state.level,
-    currentMapId: state.currentMapId,
-    gameStatus: "playing"
-  })),
   updateSpecialCoins: () =>
     set((state) => {
       if (state.pCoinActive && state.pCoinTimeLeft > 0) {

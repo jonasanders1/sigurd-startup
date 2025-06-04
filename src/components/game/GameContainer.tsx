@@ -1,31 +1,19 @@
 import React, { useRef, useEffect, useState } from "react";
 import { GameEngine } from "./GameEngine";
-import { Button } from "@/components/ui/button";
-import { Maximize, Minimize } from "lucide-react";
 import { DebugPanel } from "./DebugPanel";
 import { PowerModeOverlay } from "./PowerModeOverlay";
 import { GameMenu } from "./GameMenu";
 import { InGameMenu } from "./ui-screens/InGameMenu";
 import { useGameStore } from "@/components/stores/useGameStore";
-import { useToggleFullScreen } from "@/components/hooks/useToggleFullScreen";
 
 export const GameContainer: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const canvasContainerRef = useRef<HTMLDivElement>(null);
   const gameEngineRef = useRef<GameEngine | null>(null);
 
-  const {
-    gameStatus,
-    pCoinActive,
-    isFullscreen,
-    setIsFullscreen,
-  } = useGameStore();
+  const { gameStatus, pCoinActive, isFullscreen } = useGameStore();
 
-  const toggleFullscreen = useToggleFullScreen(
-    canvasContainerRef,
-    setIsFullscreen
-  );
-
+  // Initialize game engine only once
   useEffect(() => {
     if (!canvasRef.current) return;
 
@@ -37,15 +25,19 @@ export const GameContainer: React.FC = () => {
     canvas.width = 800;
     canvas.height = 600;
 
-    // Initialize game engine
-    gameEngineRef.current = new GameEngine(
-      ctx,
-      canvas.width,
-      canvas.height,
-      useGameStore.getState()
-    );
+    // Initialize game engine only if it doesn't exist
+    if (!gameEngineRef.current) {
+      gameEngineRef.current = new GameEngine(
+        ctx,
+        canvas.width,
+        canvas.height,
+        useGameStore.getState()
+      );
+    }
+  }, []); // Empty dependency array - only run once
 
-    // Game loop
+  // Game loop in separate effect
+  useEffect(() => {
     let animationId: number;
     const gameLoop = () => {
       if (gameEngineRef.current && gameStatus === "playing") {
@@ -77,8 +69,6 @@ export const GameContainer: React.FC = () => {
           isFullscreen ? "w-screen h-screen max-w-none" : ""
         }`}
       >
-        
-
         <canvas
           ref={canvasRef}
           className={`block max-w-full ${isFullscreen ? "w-full h-full" : ""}`}
@@ -90,9 +80,10 @@ export const GameContainer: React.FC = () => {
           <InGameMenu canvasContainerRef={canvasContainerRef} />
         )}
 
-
         {/* Menu Screens */}
-        {gameStatus !== "playing" && <GameMenu canvasContainerRef={canvasContainerRef} />}
+        {gameStatus !== "playing" && (
+          <GameMenu canvasContainerRef={canvasContainerRef} />
+        )}
 
         {pCoinActive && <PowerModeOverlay />}
       </div>
