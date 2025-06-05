@@ -1,31 +1,5 @@
-import { Platform, Player } from "./GameEngine";
-
-export interface PhysicsConfig {
-  gravity: number;
-  fastFallGravity: number;
-  friction: number;
-  moveSpeed: number;
-  jumpForce: number;
-  maxJumpTime: number;
-  floatForce: number;
-  maxFloatSpeed: number;
-  groundTolerance: number;
-}
-
-export interface MovementState {
-  isJumping: boolean;
-  jumpStartTime: number;
-  wasFloatPressed: boolean;
-  lastGroundedTime: number;
-}
-
-export interface PhysicsResult {
-  hitWall: boolean;
-  fell: boolean;
-  onGround: boolean;
-  justLanded: boolean;
-  justLeftGround: boolean;
-}
+import { MovementState, PhysicsConfig, PhysicsResult } from "../types/Physics";
+import { Platform, Player } from "../types/GameEngine";
 
 export class Physics {
   private config: PhysicsConfig = {

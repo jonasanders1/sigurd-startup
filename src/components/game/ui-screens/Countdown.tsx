@@ -10,11 +10,8 @@ const Countdown = () => {
   const audioStore = useAudioStore();
   const mapName = useCurrentMapName();
 
-  const state = useGameStore((state) => state);
-
   useEffect(() => {
     if (count === 0) {
-      audioStore.playSound(SoundEvent.GAME_MUSIC, useGameStore.getState());
       setGameStatus(GameStatus.PLAYING);
       return;
     }

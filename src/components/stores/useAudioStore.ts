@@ -1,15 +1,12 @@
 import { create } from "zustand";
-import { GameStatus, BonusType } from "../types/Game";
-import { BombCollected } from "@/components/types/Game";
-import SigurdMelody from "@/assets/sounds/sigurd-melody.mp3";
-import GameOver from "@/assets/sounds/game-over.mp3";
-import PowerUp from "@/assets/sounds/power-up.mp3";
+import { persist } from "zustand/middleware";
+import { AudioConfig } from "../types/Audio";
 
-// Define all possible sound events
+// Sound events enum for type safety (keep this for reference)
 export enum SoundEvent {
   // Game state sounds
   MENU_MUSIC = "MENU_MUSIC",
-  GAME_MUSIC = "GAME_MUSIC",
+  GAME_MUSIC = "GAME_MUSIC", 
   GAME_OVER = "GAME_OVER",
   BONUS_SCREEN = "BONUS_SCREEN",
 
@@ -22,102 +19,19 @@ export enum SoundEvent {
   JUMP = "JUMP",
 }
 
-// Define game state interface for sound conditions
-interface GameState {
-  correctOrderCount: number;
-  lives: number;
-  score: number;
-  level: number;
-  gameStatus: GameStatus;
-  currentMapId: string;
-  efficiencyMultiplier: number;
-  bombsCollected: BombCollected[];
-  bCoinsCollected: number;
-  eCoinsCollected: number;
-  pCoinActive: boolean;
-  pCoinTimeLeft: number;
-  currentActiveGroup: number | null;
-  completedGroups: number[];
-  isFullscreen: boolean;
-  bonus: BonusType;
-  [key: string]: unknown;
-}
-
-// Sound configuration interface
-interface SoundConfig {
-  src: string;
-  volume?: number;
-  loop?: boolean;
-  isMusic?: boolean;
-  condition?: (state: GameState) => boolean;
-}
-
-// Map of all available sounds
-const SOUNDS: Record<SoundEvent, SoundConfig> = {
-  // Game state sounds
-  [SoundEvent.MENU_MUSIC]: {
-    src: SigurdMelody,
-    isMusic: true,
-    loop: true,
-    volume: 0.6,
-  },
-  [SoundEvent.GAME_MUSIC]: {
-    src: SigurdMelody,
-    isMusic: true,
-    loop: true,
-    volume: 0.6,
-  },
-  [SoundEvent.GAME_OVER]: {
-    src: GameOver,
-    volume: 0.8,
-  },
-  [SoundEvent.BONUS_SCREEN]: {
-    src: PowerUp,
-    volume: 0.7,
-    condition: (state) => state.correctOrderCount >= 20,
-  },
-
-  // Game action sounds
-  [SoundEvent.BOMB_COLLECT]: {
-    src: PowerUp,
-    volume: 0.5,
-  },
-  [SoundEvent.POWER_UP]: {
-    src: PowerUp,
-    volume: 0.7,
-  },
-  [SoundEvent.LIFE_LOST]: {
-    src: GameOver,
-    volume: 0.6,
-  },
-  [SoundEvent.LIFE_GAINED]: {
-    src: PowerUp,
-    volume: 0.6,
-  },
-  [SoundEvent.WALL_HIT]: {
-    src: PowerUp,
-    volume: 0.4,
-  },
-  [SoundEvent.JUMP]: {
-    src: PowerUp,
-    volume: 0.3,
-  },
-};
-
+// Audio store interface - SETTINGS ONLY
 interface AudioStore {
-  // Volume controls
+  // Volume settings (0-100 for UI friendliness)
   masterVolume: number;
   musicVolume: number;
   sfxVolume: number;
+  
+  // Mute states
   isMasterMuted: boolean;
   isMusicMuted: boolean;
   isSfxMuted: boolean;
 
-  // Current playing sounds
-  currentMusic: HTMLAudioElement | null;
-  currentSfx: HTMLAudioElement | null;
-
-  // Volume controls
+  // Settings actions
   setMasterVolume: (volume: number) => void;
   setMusicVolume: (volume: number) => void;
   setSfxVolume: (volume: number) => void;
@@ -125,126 +39,86 @@ interface AudioStore {
   toggleMusicMute: () => void;
   toggleSfxMute: () => void;
 
-  // Sound controls
-  playSound: (event: SoundEvent, gameState?: GameState) => void;
-  stopMusic: () => void;
-  stopAllSounds: () => void;
+  // Utility methods
+  getAudioConfig: () => AudioConfig;
+  resetToDefaults: () => void;
 }
 
-export const useAudioStore = create<AudioStore>((set, get) => ({
-  // Initial state
+// Default audio settings
+const DEFAULT_SETTINGS = {
   masterVolume: 75,
   musicVolume: 60,
   sfxVolume: 80,
   isMasterMuted: false,
   isMusicMuted: false,
   isSfxMuted: false,
-  currentMusic: null,
-  currentSfx: null,
+};
 
-  // Volume controls
-  setMasterVolume: (volume) => set({ masterVolume: volume }),
-  setMusicVolume: (volume) => set({ musicVolume: volume }),
-  setSfxVolume: (volume) => set({ sfxVolume: volume }),
-  toggleMasterMute: () =>
-    set((state) => ({ isMasterMuted: !state.isMasterMuted })),
-  toggleMusicMute: () =>
-    set((state) => ({ isMusicMuted: !state.isMusicMuted })),
-  toggleSfxMute: () => set((state) => ({ isSfxMuted: !state.isSfxMuted })),
+export const useAudioStore = create<AudioStore>()(
+  persist(
+    (set, get) => ({
+      // Initial state from defaults
+      ...DEFAULT_SETTINGS,
 
-  // Sound controls
-  playSound: (event, gameState) => {
-    const {
-      isMasterMuted,
-      isMusicMuted,
-      isSfxMuted,
-      masterVolume,
-      musicVolume,
-      sfxVolume,
-      currentMusic,
-      currentSfx,
-    } = get();
+      // Volume control actions
+      setMasterVolume: (volume: number) => {
+        const clampedVolume = Math.max(0, Math.min(100, volume));
+        set({ masterVolume: clampedVolume });
+      },
 
-    const soundConfig = SOUNDS[event];
-    if (!soundConfig) {
-      console.warn(`No sound configuration found for event: ${event}`);
-      return;
+      setMusicVolume: (volume: number) => {
+        const clampedVolume = Math.max(0, Math.min(100, volume));
+        set({ musicVolume: clampedVolume });
+      },
+
+      setSfxVolume: (volume: number) => {
+        const clampedVolume = Math.max(0, Math.min(100, volume));
+        set({ sfxVolume: clampedVolume });
+      },
+
+      // Mute toggle actions
+      toggleMasterMute: () =>
+        set((state) => ({ isMasterMuted: !state.isMasterMuted })),
+
+      toggleMusicMute: () =>
+        set((state) => ({ isMusicMuted: !state.isMusicMuted })),
+
+      toggleSfxMute: () =>
+        set((state) => ({ isSfxMuted: !state.isSfxMuted })),
+
+      // Utility methods
+      getAudioConfig: (): AudioConfig => {
+        const state = get();
+        return {
+          masterVolume: state.masterVolume / 100, // Convert to 0-1 range
+          musicVolume: state.musicVolume / 100,
+          sfxVolume: state.sfxVolume / 100,
+          musicMuted: state.isMasterMuted || state.isMusicMuted,
+          sfxMuted: state.isMasterMuted || state.isSfxMuted,
+        };
+      },
+
+      resetToDefaults: () => {
+        set(DEFAULT_SETTINGS);
+      },
+    }),
+    {
+      name: "sigurd-audio-settings", // localStorage key
+      version: 1,
     }
+  )
+);
 
-    // Check conditions
-    if (soundConfig.condition && !soundConfig.condition(gameState)) {
-      console.log(`Sound condition not met for event: ${event}`);
-      return;
-    }
+// Selector hooks for specific settings (for performance)
+export const useMasterVolume = () => useAudioStore((state) => state.masterVolume);
+export const useMusicVolume = () => useAudioStore((state) => state.musicVolume);
+export const useSfxVolume = () => useAudioStore((state) => state.sfxVolume);
+export const useIsMasterMuted = () => useAudioStore((state) => state.isMasterMuted);
+export const useIsMusicMuted = () => useAudioStore((state) => state.isMusicMuted);
+export const useIsSfxMuted = () => useAudioStore((state) => state.isSfxMuted);
 
-    // Check if sound should be muted
-    if (isMasterMuted || (soundConfig.isMusic ? isMusicMuted : isSfxMuted)) {
-      console.log(`Sound muted for event: ${event}`);
-      return;
-    }
+// Combined selector for audio config
+export const useAudioConfig = () => useAudioStore((state) => state.getAudioConfig());
 
-    // Calculate volume
-    const baseVolume = soundConfig.volume || 1;
-    const volumeMultiplier = soundConfig.isMusic ? musicVolume : sfxVolume;
-    const finalVolume =
-      (masterVolume / 100) * (volumeMultiplier / 100) * baseVolume;
-
-    // Create and play sound
-    const audio = new Audio(soundConfig.src);
-    audio.volume = finalVolume;
-    if (soundConfig.loop) {
-      audio.loop = true;
-    }
-
-    // Handle sound completion
-    audio.addEventListener("ended", () => {
-      if (soundConfig.isMusic) {
-        set({ currentMusic: null });
-      } else {
-        set({ currentSfx: null });
-      }
-    });
-
-    // Stop previous sound if it's the same type (music or sfx)
-    if (soundConfig.isMusic) {
-      if (currentMusic) {
-        currentMusic.pause();
-        currentMusic.currentTime = 0;
-      }
-      set({ currentMusic: audio });
-    } else {
-      if (currentSfx) {
-        currentSfx.pause();
-        currentSfx.currentTime = 0;
-      }
-      set({ currentSfx: audio });
-    }
-
-    // Play the sound
-    audio.play().catch((error) => {
-      console.error(`Failed to play sound for event ${event}:`, error);
-    });
-  },
-
-  stopMusic: () => {
-    const { currentMusic } = get();
-    if (currentMusic) {
-      currentMusic.pause();
-      currentMusic.currentTime = 0;
-      set({ currentMusic: null });
-    }
-  },
-
-  stopAllSounds: () => {
-    const { currentMusic, currentSfx } = get();
-    if (currentMusic) {
-      currentMusic.pause();
-      currentMusic.currentTime = 0;
-    }
-    if (currentSfx) {
-      currentSfx.pause();
-      currentSfx.currentTime = 0;
-    }
-    set({ currentMusic: null, currentSfx: null });
-  },
-}));
+// Type exports for other files
+export type { AudioStore };
