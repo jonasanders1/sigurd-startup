@@ -15,12 +15,7 @@ export interface AudioAssets {
 
   // Sound Effects
   jump: string;
-  wallHit: string;
   bombCollect: string;
-  bombCorrect: string;
-  bombWrong: string;
-  monsterHit: string;
-  lifeGained: string;
   lifeLost: string;
   bCoin: string;
   eCoin: string;

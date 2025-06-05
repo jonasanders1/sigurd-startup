@@ -8,14 +8,15 @@ import { useGameStore } from "@/components/stores/useGameStore";
 import { useAudioStore } from "@/components/stores/useAudioStore";
 import { GameStatus } from "../types/Game";
 import { ScoringSystem } from "./ScoringSystem";
+import { Player, Bomb, Platform, SpecialCoin } from "../types/GameEngine";
 import {
-  Player,
-  Bomb,
   Monster,
-  Platform,
-  SpecialCoin,
-} from "../types/GameEngine";
+  MovementPattern,
+  MovementConfig,
+  MonsterType,
+} from "../types/Monster";
 import { AudioConfig } from "../types/Audio";
+import { MonsterAI } from "./MonsterMovement";
 
 export interface GameEngineConfig {
   canvasWidth: number;
@@ -63,7 +64,7 @@ export class GameEngine {
   private renderer: Renderer;
   private scoringSystem: ScoringSystem;
   private audioManager: AudioManager;
-
+  private monsterAI: MonsterAI;
   // Cleanup function
   private cleanupSubscriptions: (() => void) | null = null;
 
@@ -89,6 +90,7 @@ export class GameEngine {
       lastStateCheck: Date.now(),
       currentGameStatus: store.gameStatus,
     };
+    this.monsterAI = new MonsterAI();
 
     this.store = store;
 
@@ -243,7 +245,7 @@ export class GameEngine {
     this.initializePlayer(mapDef);
     this.initializePlatforms(mapDef);
     this.initializeBombs(mapDef);
-    this.initializeMonsters(mapDef);
+    this.monsters = this.generateMonstersFromMap(mapDef);
     this.initializeSpecialCoins();
 
     console.log(`Loaded map: ${mapDef.name} with ${this.bombs.length} bombs`);
@@ -289,28 +291,46 @@ export class GameEngine {
     }));
   }
 
-  /**
-   * Initialize monsters from map definition
-   */
-  private initializeMonsters(mapDef: MapDefinition): void {
+  private generateMonstersFromMap(mapDef: MapDefinition): Monster[] {
     const monsterColors = {
-      bureaucrat: "#DC2626",
-      taxman: "#7C2D12",
-      regulator: "#991B1B",
+      [MonsterType.BUREAUCRAT]: "#00ff89",
+      [MonsterType.TAXMAN]: "#ff4b36",
+      [MonsterType.REGULATOR]: "#ffcf39",
     };
 
-    this.monsters = mapDef.monsters.map((m) => ({
-      x: m.x,
-      y: m.y,
-      width: this.config.monsterSize.width,
-      height: this.config.monsterSize.height,
-      type: m.type,
-      velocityX: m.speed || 1,
-      patrolStartX: m.patrolStartX || m.x,
-      patrolEndX: m.patrolEndX || m.x + 100,
-      speed: m.speed || 1,
-      color: monsterColors[m.type],
-    }));
+    return mapDef.monsters.map((m, index) => {
+      // Create base monster
+      const baseMonster: Monster = {
+        x: m.x,
+        y: m.y,
+        width: this.config.monsterSize.width,
+        height: this.config.monsterSize.height,
+        type: m.type,
+        velocityX: m.speed || 1,
+        velocityY: 0,
+        patrolStartX: m.patrolStartX || m.x,
+        patrolEndX: m.patrolEndX || m.x + 100,
+        speed: m.speed || 1,
+        color: monsterColors[m.type],
+        aiState: {
+          currentDirection: { x: 0, y: 0 },
+          timeAlive: 0,
+          lastDirectionChange: 0,
+          patrolStartX: m.x,
+          patrolStartY: m.y,
+        },
+        config: {
+          pattern: MovementPattern.HORIZONTAL_PATROL,
+          speed: m.speed || 1,
+        },
+      };
+
+      // Assign AI pattern based on monster type and level
+      const config = this.getMonsterAIConfig(m.type, baseMonster, index);
+
+      // Initialize with AI
+      return this.monsterAI.initializeMonster(baseMonster, config);
+    });
   }
 
   /**
@@ -404,9 +424,9 @@ export class GameEngine {
    */
   private handlePhysicsEvents(physicsResult: PhysicsResult): void {
     // Wall hit scoring and audio
-    if (physicsResult.hitWall && !this.state.wasTouchingWall) {
-      this.handleWallHit();
-    }
+    // if (physicsResult.hitWall && !this.state.wasTouchingWall) {
+    //   this.handleWallHit();
+    // }
 
     // Jump scoring and audio
     if (physicsResult.justLeftGround) {
@@ -420,14 +440,14 @@ export class GameEngine {
   /**
    * Handle wall hit event - ONLY AudioManager
    */
-  private handleWallHit(): void {
-    const scoreToAdd = this.scoringSystem.scoreWallHit();
-    this.store.updateScore(scoreToAdd, this.store.getState().score);
-    this.updatePCoinColor();
+  // private handleWallHit(): void {
+  //   const scoreToAdd = this.scoringSystem.scoreWallHit();
+  //   this.store.updateScore(scoreToAdd, this.store.getState().score);
+  //   this.updatePCoinColor();
 
-    // ONLY AudioManager handles sound
-    this.audioManager.playWallHitSound();
-  }
+  //   // ONLY AudioManager handles sound
+  //   this.audioManager.playWallHitSound();
+  // }
 
   /**
    * Handle jump event - ONLY AudioManager
@@ -455,36 +475,11 @@ export class GameEngine {
    */
   private updateMonsters(): void {
     this.monsters.forEach((monster) => {
-      this.updateMonsterMovement(monster);
-      this.constrainMonsterToPatrolArea(monster);
+      this.monsterAI.updateMonster(monster, this.player, this.platforms, {
+        width: this.config.canvasWidth,
+        height: this.config.canvasHeight,
+      });
     });
-  }
-
-  /**
-   * Update individual monster movement
-   */
-  private updateMonsterMovement(monster: Monster): void {
-    monster.x += monster.velocityX;
-
-    // Reverse direction at patrol boundaries
-    if (
-      monster.x <= monster.patrolStartX ||
-      monster.x >= monster.patrolEndX - monster.width
-    ) {
-      monster.velocityX *= -1;
-    }
-  }
-
-  /**
-   * Ensure monster stays within patrol area
-   */
-  private constrainMonsterToPatrolArea(monster: Monster): void {
-    if (monster.x < monster.patrolStartX) {
-      monster.x = monster.patrolStartX;
-    }
-    if (monster.x > monster.patrolEndX - monster.width) {
-      monster.x = monster.patrolEndX - monster.width;
-    }
   }
 
   /**
@@ -963,6 +958,70 @@ export class GameEngine {
     this.audioManager.dispose();
     if (this.cleanupSubscriptions) {
       this.cleanupSubscriptions();
+    }
+  }
+
+  /**
+   * Get AI configuration based on monster type
+   */
+  private getMonsterAIConfig(
+    type: MonsterType,
+    monster: Monster,
+    index: number
+  ): MovementConfig {
+    switch (type) {
+      case MonsterType.BUREAUCRAT:
+        return {
+          pattern: MovementPattern.HORIZONTAL_PATROL,
+          speed: monster.speed || 1,
+          patrolDistance: monster.patrolEndX - monster.patrolStartX,
+        };
+      case MonsterType.TAXMAN:
+        return {
+          pattern: MovementPattern.VERTICAL_BOUNCE,
+          speed: monster.speed || 1.2,
+          detectionRange: 150,
+        };
+      case MonsterType.REGULATOR:
+        return {
+          pattern: MovementPattern.CIRCULAR,
+          speed: monster.speed || 1.5,
+          patrolDistance: 80,
+          detectionRange: 100,
+        };
+      case MonsterType.TAX_GHOST:
+        return {
+          pattern: MovementPattern.SINE_WAVE,
+          speed: monster.speed || 1.2,
+          detectionRange: 150,
+        };
+      case MonsterType.REGULATION_ROBOT:
+        return {
+          pattern: MovementPattern.FOLLOW_PLAYER,
+          speed: monster.speed || 1.5,
+          patrolDistance: 80,
+          detectionRange: 100,
+        };
+      case MonsterType.BUREAUCRAT_CLONE:
+        return {
+          pattern: MovementPattern.RANDOM_WALK,
+          speed: monster.speed || 1.5,
+          patrolDistance: 80,
+          detectionRange: 100,
+        };
+      case MonsterType.FEE_ALIEN:
+        return {
+          pattern: MovementPattern.FIGURE_EIGHT,
+          speed: monster.speed || 1.2,
+          detectionRange: 150,
+        };
+      case MonsterType.CONTROL_CRAB:
+        return {
+          pattern: MovementPattern.GUARD_AREA,
+          speed: monster.speed || 1.5,
+          patrolDistance: 80,
+          detectionRange: 100,
+        };
     }
   }
 }

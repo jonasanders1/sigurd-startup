@@ -17,13 +17,8 @@ export class AudioManager {
     gameOverMusic: "/audio/music/gameover.mp3",
 
     // Sound Effects
-    jump: "/audio/sfx/jump.wav",
-    wallHit: "/audio/sfx/wall-hit.wav",
+    jump: "/audio/sfx/jump.wav", // DONE
     bombCollect: "/audio/sfx/bomb-collect.wav",
-    bombCorrect: "/audio/sfx/bomb-correct.wav",
-    bombWrong: "/audio/sfx/bomb-wrong.wav",
-    monsterHit: "/audio/sfx/monster-hit.wav",
-    lifeGained: "/audio/sfx/life-gained.wav",
     lifeLost: "/audio/sfx/life-lost.wav",
     bCoin: "/audio/sfx/b-coin.wav",
     eCoin: "/audio/sfx/e-coin.wav",
@@ -226,24 +221,24 @@ export class AudioManager {
   public playJumpSound(): void {
     this.playSFX("jump");
   }
-  public playWallHitSound(): void {
-    this.playSFX("wallHit");
-  }
+  // public playWallHitSound(): void {
+  //   this.playSFX("wallHit");
+  // }
 
-  // Bomb collection sounds
-  public playBombCollectSound(isCorrect: boolean): void {
-    this.playSFX(isCorrect ? "bombCorrect" : "bombWrong");
-  }
+  // // Bomb collection sounds
+  // public playBombCollectSound(isCorrect: boolean): void {
+  //   this.playSFX(isCorrect ? "bombCorrect" : "bombWrong");
+  // }
 
-  // Monster interaction sounds
-  public playMonsterHitSound(): void {
-    this.playSFX("monsterHit");
-  }
+  // // Monster interaction sounds
+  // public playMonsterHitSound(): void {
+  //   this.playSFX("monsterHit");
+  // }
 
-  // Life management sounds
-  public playLifeGainedSound(): void {
-    this.playSFX("lifeGained");
-  }
+  // // Life management sounds
+  // public playLifeGainedSound(): void {
+  //   this.playSFX("lifeGained");
+  // }
   public playLifeLostSound(): void {
     this.playSFX("lifeLost");
   }

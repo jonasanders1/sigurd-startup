@@ -1,3 +1,4 @@
+
 import { GameStatus } from "./Game";
 
 export interface GameState {
@@ -11,7 +12,7 @@ export interface GameState {
   correctOrderCount: number;
   bCoinsCollected: number;
   eCoinsCollected: number;
-  pCoinActive: boolean;
+  pCoinActive: boolean; 
   pCoinTimeLeft: number;
   currentActiveGroup: number | null; // Track which group the player is currently working on
   completedGroups: number[]; // Track which groups have been completed
@@ -40,18 +41,7 @@ export interface Bomb {
   isInActiveGroup: boolean; // Add flag for group highlighting
 }
 
-export interface Monster {
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-  type: "bureaucrat" | "taxman" | "regulator";
-  velocityX: number;
-  patrolStartX: number;
-  patrolEndX: number;
-  speed: number;
-  color: string;
-}
+
 
 export interface Platform {
   x: number;

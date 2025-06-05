@@ -1,4 +1,5 @@
-import { Player, Bomb, Monster, Platform, SpecialCoin } from "./GameEngine";
+import { Player, Bomb, Platform, SpecialCoin } from "../types/GameEngine";
+import { Monster, MonsterType } from "../types/Monster";
 import { MapDefinition } from "./MapDefinitions";
 
 export class Renderer {
@@ -46,27 +47,6 @@ export class Renderer {
     // Draw player
     this.renderPlayer(player);
   }
-
-  // private renderMapTitle(title: string): void {
-  //   // Save current context state
-  //   this.ctx.save();
-
-  //   // Set up the title style
-  //   this.ctx.fillStyle = "#1a2336"; // Light gray with 30% opacity
-  //   this.ctx.font = "bold 48px Arial";
-  //   this.ctx.textAlign = "left";
-  //   this.ctx.textBaseline = "top";
-
-  //   // Position in top left corner with some padding
-  //   const x = 20;
-  //   const y = 20;
-
-  //   // Draw the title in uppercase
-  //   this.ctx.fillText(title.toUpperCase(), x, y);
-
-  //   // Restore context state
-  //   this.ctx.restore();
-  // }
 
   private renderPlatforms(platforms: Platform[]): void {
     this.ctx.fillStyle = "#475569";
@@ -185,13 +165,13 @@ export class Renderer {
 
       // Add monster details based on type
       this.ctx.fillStyle = "#000000";
-      if (monster.type === "bureaucrat") {
+      if (monster.type === MonsterType.BUREAUCRAT) {
         // Draw briefcase
         this.ctx.fillRect(monster.x + 18, monster.y + 20, 8, 6);
-      } else if (monster.type === "taxman") {
+      } else if (monster.type === MonsterType.TAXMAN) {
         // Draw calculator
         this.ctx.fillRect(monster.x + 16, monster.y + 18, 10, 8);
-      } else if (monster.type === "regulator") {
+      } else if (monster.type === MonsterType.REGULATOR) {
         // Draw clipboard
         this.ctx.fillRect(monster.x + 17, monster.y + 16, 8, 10);
       }
