@@ -35,7 +35,7 @@ export const InGameMenu: React.FC<{
           </div>
           <div className="w-px h-8 bg-border"></div>
           <div className="text-center">
-            <div className="text-accent font-bold">{level}</div>
+            <div className="text-accent font-bold">{level.toLocaleString()}</div>
             <div className="text-xs text-muted-foreground">LEVEL</div>
           </div>
         </div>

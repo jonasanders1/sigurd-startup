@@ -1,4 +1,3 @@
-import Navigation from "@/components/Navigation";
 import {
   Card,
   CardContent,
@@ -14,7 +13,7 @@ import { Key, Volume2 } from "lucide-react";
 import { useState } from "react";
 import PageTitle from "@/components/PageTitle";
 import { useAudioStore } from "@/components/stores/useAudioStore";
-import Sigurd from "@/assets/sounds/sigurd.mp3";
+import SigurdMelody from "@/assets/sounds/sigurd-melody.mp3";
 
 const Settings = () => {
   const {
@@ -158,7 +157,7 @@ const Settings = () => {
                       checked={!isMusicMuted}
                       onCheckedChange={(checked) => {
                         toggleMusicMute();
-                        if (checked) playSound(Sigurd);
+                        if (checked) playSound(SigurdMelody);
                       }}
                       aria-label="Skru av/på musikk"
                     />

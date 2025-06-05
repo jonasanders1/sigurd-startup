@@ -18,6 +18,7 @@ export enum GameStatus {
   PAUSED = "paused",
   GAME_OVER = "gameOver",
   BONUS_SCREEN = "bonusScreen",
+  COUNTDOWN = "countdown",
 }
 
 export interface GameStore {
@@ -38,6 +39,9 @@ export interface GameStore {
   currentActiveGroup: number | null;
   completedGroups: number[];
   isFullscreen: boolean;
+  lastEarnedBonus: number;
+  lastPreBonusScore: number;
+  [key: string]: unknown;
 
   // Actions
   setGameStatus: (status: GameStatus) => void;
@@ -61,6 +65,7 @@ export interface GameStore {
   resetCorrectOrderCount: () => void;
   resetCompletedGroups: () => void;
   setCorrectOrderCount: (count: number) => void;
+  setLastBonusAndScore: (bonus: number, score: number) => void;
   // Bomb collection actions
   addBombCollected: (bomb: BombCollected) => void;
   incrementCorrectOrder: () => void;

@@ -72,7 +72,7 @@ export const GameContainer: React.FC = () => {
         <canvas
           ref={canvasRef}
           className={`block max-w-full ${isFullscreen ? "w-full h-full" : ""}`}
-          style={{ imageRendering: "pixelated" }}
+          style={{ imageRendering: "crisp-edges" }}
         />
 
         {/* In-game UI */}

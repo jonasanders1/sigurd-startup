@@ -3,6 +3,7 @@ import { Physics } from "./Physics";
 import { CollisionDetection } from "./CollisionDetection";
 import { Renderer } from "./Renderer";
 import { useGameStore } from "@/components/stores/useGameStore";
+import { SoundEvent, useAudioStore } from "@/components/stores/useAudioStore";
 import { BonusType, GameStatus } from "../types/Game";
 import { ScoringSystem } from "./ScoringSystem";
 
@@ -81,6 +82,7 @@ export class GameEngine {
   private width: number;
   private height: number;
   private store: ReturnType<typeof useGameStore.getState>;
+  private audioStore: ReturnType<typeof useAudioStore.getState>;
 
   private currentMap: MapDefinition;
   private player: Player;
@@ -101,8 +103,6 @@ export class GameEngine {
   private scoringSystem: ScoringSystem;
 
   private wasTouchingWall = false;
-  private wasOnGround = false;
-  private hasSpawnedPCoin = false; // Track if we've already spawned a P-coin
 
   constructor(
     ctx: CanvasRenderingContext2D,
@@ -113,6 +113,7 @@ export class GameEngine {
     this.width = width;
     this.height = height;
     this.store = store;
+    this.audioStore = useAudioStore.getState();
 
     // Initialize modules
     this.physics = new Physics();
@@ -170,21 +171,14 @@ export class GameEngine {
     const newMap = getMapById(mapId);
 
     if (newMap) {
-      console.log("Found new map, showing bonus screen");
-      this.store.setGameStatus(GameStatus.BONUS_SCREEN);
-
-      setTimeout(() => {
-        console.log("Bonus screen timeout complete, loading new map");
-        this.store.setGameStatus(GameStatus.PLAYING);
-        this.store.updateScore(this.store.bonus, this.store.score);
-        this.store.resetBonus();
-        this.store.resetCorrectOrderCount();
-        // Reset group-related state
-        this.store.setActiveGroup(null);
-        this.store.resetCompletedGroups();
-        this.loadMap(newMap);
-        console.log("New map loaded:", newMap.id);
-      }, 3000);
+      this.store.setGameStatus(GameStatus.COUNTDOWN);
+      this.loadMap(newMap);
+      // Reset group-related state, etc. (as before)
+      this.store.resetCorrectOrderCount();
+      this.store.setActiveGroup(null);
+      this.store.resetCompletedGroups();
+      // ... any other state resets needed ...
+      console.log("New map loaded:", newMap.id);
     } else {
       console.error("Failed to find map:", mapId);
     }
@@ -213,7 +207,10 @@ export class GameEngine {
       this.switchToMap(nextMap.id);
     } else {
       console.log("No more maps available");
-      this.store.setGameStatus(GameStatus.GAME_OVER);
+      this.store.setGameStatus(GameStatus.BONUS_SCREEN);
+      setTimeout(() => {
+        this.store.setGameStatus(GameStatus.GAME_OVER);
+      }, 3000);
     }
   }
 
@@ -305,8 +302,6 @@ export class GameEngine {
     this.jumpHoldTime = 0;
     this.pCoinColorIndex = 0;
     this.wasTouchingWall = false;
-    this.wasOnGround = false;
-    this.hasSpawnedPCoin = false; // Reset P-coin spawn tracking
     this.store.resetGame();
   }
 
@@ -338,16 +333,7 @@ export class GameEngine {
       this.updatePCoinColor();
     }
 
-    // // Score jump when leaving the ground - CHECK PREVIOUS STATE
-    // if (!isOnGround && this.wasOnGround) {
-    //   const scoreToAdd = this.scoringSystem.scoreJump();
-    //   this.store.updateScore(scoreToAdd, this.store.getState().score);
-    //   this.updatePCoinColor();
-    // }
-
-    // UPDATE PREVIOUS STATES AFTER SCORING CHECKS
     this.wasTouchingWall = isTouchingWall;
-    this.wasOnGround = isOnGround;
 
     // Update monsters
     this.updateMonsters();
@@ -511,43 +497,47 @@ export class GameEngine {
       (group) => !completedGroups.includes(group)
     );
 
+    // Reset all bomb highlighting first
     this.bombs.forEach((bomb) => {
-      // Reset highlighting
       bomb.isCorrectNext = false;
       bomb.isInActiveGroup = false;
-
-      if (bomb.collected) return;
-
-      // If no active group, only highlight bombs from the first group in sequence
-      if (activeGroup === null) {
-        if (bomb.group === nextGroupInSequence) {
-          const groupBombs = this.bombs.filter(
-            (b) => b.group === bomb.group && !b.collected
-          );
-          // Only highlight the first available bomb in the group
-          const firstBombInGroup = groupBombs.reduce((min, current) =>
-            current.order < min.order ? current : min
-          );
-          bomb.isCorrectNext = bomb.order === firstBombInGroup.order;
-          bomb.isInActiveGroup = true;
-        }
-      }
-      // If there's an active group, enforce strict sequential order within that group
-      else if (bomb.group === activeGroup) {
-        bomb.isInActiveGroup = true;
-
-        // Find the next bomb in strict sequence within this group
-        const groupBombs = this.bombs.filter(
-          (b) => b.group === activeGroup && !b.collected
-        );
-        if (groupBombs.length > 0) {
-          const nextBomb = groupBombs.reduce((min, current) =>
-            current.order < min.order ? current : min
-          );
-          bomb.isCorrectNext = bomb.order === nextBomb.order;
-        }
-      }
     });
+
+    // If no active group, only highlight the first bomb of the next group in sequence
+    if (activeGroup === null && nextGroupInSequence) {
+      const nextGroupBombs = this.bombs.filter(
+        (b) => b.group === nextGroupInSequence && !b.collected
+      );
+      if (nextGroupBombs.length > 0) {
+        const firstBomb = nextGroupBombs.reduce((min, current) =>
+          current.order < min.order ? current : min
+        );
+        firstBomb.isCorrectNext = true;
+        firstBomb.isInActiveGroup = true;
+      }
+      return;
+    }
+
+    // If there's an active group, highlight all bombs in that group
+    // and mark the next correct bomb
+    if (activeGroup !== null) {
+      const activeGroupBombs = this.bombs.filter(
+        (b) => b.group === activeGroup && !b.collected
+      );
+
+      // Mark all bombs in active group
+      activeGroupBombs.forEach((bomb) => {
+        bomb.isInActiveGroup = true;
+      });
+
+      // Find and mark the next correct bomb
+      if (activeGroupBombs.length > 0) {
+        const nextBomb = activeGroupBombs.reduce((min, current) =>
+          current.order < min.order ? current : min
+        );
+        nextBomb.isCorrectNext = true;
+      }
+    }
   }
 
   private checkWinCondition() {
@@ -556,23 +546,27 @@ export class GameEngine {
       console.log("All bombs collected, calculating bonus...");
       this.calculateFinalBonus();
 
+      // Add bonus to score and reset bonus before showing bonus screen
+      const state = this.store.getState();
+      this.store.setLastBonusAndScore(state.bonus, state.score);
+      this.store.updateScore(state.bonus, state.score);
+      this.store.resetBonus();
+
       const currentIndex = mapDefinitions.findIndex(
         (m) => m.id === this.currentMap.id
       );
-      console.log(
-        "Current map index:",
-        currentIndex,
-        "Current map:",
-        this.currentMap.id
-      );
 
-      if (currentIndex < mapDefinitions.length - 1) {
-        console.log("Moving to next map...");
-        this.nextMap();
-      } else {
-        console.log("All maps completed!");
-        this.store.setGameStatus(GameStatus.GAME_OVER);
-      }
+      this.store.setGameStatus(GameStatus.BONUS_SCREEN);
+
+      setTimeout(() => {
+        if (currentIndex < mapDefinitions.length - 1) {
+          // Not last map: go to countdown for next map
+          this.switchToMap(mapDefinitions[currentIndex + 1].id);
+        } else {
+          // Last map: go to game over
+          this.store.setGameStatus(GameStatus.GAME_OVER);
+        }
+      }, 3000);
     }
   }
 

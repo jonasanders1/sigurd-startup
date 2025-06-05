@@ -6,6 +6,11 @@ import { ScoringSystem } from "./ScoringSystem";
 export class CollisionDetection {
   private scoringSystem: ScoringSystem;
 
+  // Constants for scoring multipliers
+  private readonly WRONG_GROUP_PENALTY = 0.2;  // 20% of normal bomb score
+  private readonly WRONG_ORDER_PENALTY = 0.3;  // 30% of normal bomb score
+  private readonly OUTSIDE_GROUP_PENALTY = 0.5;  // 50% of normal bomb score
+
   constructor(store: GameStore) {
     this.scoringSystem = new ScoringSystem(store);
   }
@@ -72,7 +77,7 @@ export class CollisionDetection {
         console.log(`Started group ${bomb.group} with bomb ${bomb.order}`);
       } else {
         // Penalty for trying to collect from wrong group
-        const scoreToAdd = this.scoringSystem.scoreNormalBomb() * 0.2; // 20% of normal bomb score
+        const scoreToAdd = this.scoringSystem.scoreNormalBomb() * this.WRONG_GROUP_PENALTY;
         store.updateScore(scoreToAdd, state.score);
         console.log(
           `Wrong group! Must complete group ${nextGroupInSequence} first. +${scoreToAdd} kr`
@@ -115,14 +120,14 @@ export class CollisionDetection {
         );
       } else {
         // Wrong order within the active group - penalty
-        scoreToAdd = this.scoringSystem.scoreNormalBomb() * 0.3; // 30% of normal bomb score
+        scoreToAdd = this.scoringSystem.scoreNormalBomb() * this.WRONG_ORDER_PENALTY;
         console.log(
           `Wrong order in group ${bomb.group}! Expected bomb ${expectedNextOrder}, got ${bomb.order}. +${scoreToAdd} kr`
         );
       }
     } else {
       // Penalty for collecting bomb outside active group
-      scoreToAdd = this.scoringSystem.scoreNormalBomb() * 0.5; // 50% of normal bomb score
+      scoreToAdd = this.scoringSystem.scoreNormalBomb() * this.OUTSIDE_GROUP_PENALTY;
       console.log(
         `Wrong group! Bomb ${bomb.order} (group ${bomb.group}) while working on group ${newActiveGroup}. +${scoreToAdd} kr`
       );
@@ -139,7 +144,7 @@ export class CollisionDetection {
     if (collectedInGroup === groupBombs.length) {
       newCompletedGroups.push(bomb.group);
       store.addCompletedGroup(bomb.group);
-      store.setActiveGroup(null); // Reset active group so player can choose next
+      store.setActiveGroup(null); // Reset active group so next group in sequence becomes available
       console.log(
         `Group ${bomb.group} completed! Moving to next group in sequence.`
       );

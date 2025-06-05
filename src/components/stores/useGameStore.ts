@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { BonusType, GameStatus } from "../types/Game";
 import { GameStore, BombCollected } from "@/components/types/Game";
+import { useAudioStore, SoundEvent } from "./useAudioStore";
 
 const INITIAL_STATE = {
   score: 0,
@@ -19,14 +20,36 @@ const INITIAL_STATE = {
   currentActiveGroup: null as number | null,
   completedGroups: [] as number[],
   isFullscreen: false,
+  lastEarnedBonus: 0,
+  lastPreBonusScore: 0,
 };
 
 export const useGameStore = create<GameStore>((set, get) => ({
   ...INITIAL_STATE,
-
   // Game status actions
-  setGameStatus: (status) => set({ gameStatus: status }),
-  startGame: () => set({ gameStatus: GameStatus.PLAYING }),
+  setGameStatus: (status) => {
+    set({ gameStatus: status });
+    const audioStore = useAudioStore.getState();
+
+    // Map game status to sound events
+    switch (status) {
+      case GameStatus.MENU:
+        audioStore.playSound(SoundEvent.MENU_MUSIC, get());
+        break;
+      case GameStatus.PLAYING:
+        audioStore.playSound(SoundEvent.GAME_MUSIC, get());
+        break;
+      case GameStatus.GAME_OVER:
+        audioStore.playSound(SoundEvent.GAME_OVER, get());
+        break;
+      case GameStatus.BONUS_SCREEN:
+        audioStore.playSound(SoundEvent.BONUS_SCREEN, get());
+        break;
+    }
+  },
+  startGame: () => {
+    set({ gameStatus: GameStatus.COUNTDOWN });
+  },
   pauseGame: () =>
     set((state) => ({
       gameStatus:
@@ -37,8 +60,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
   continueGame: () => set({ gameStatus: GameStatus.PLAYING }),
 
   // Player state actions
-  updateScore: (points) =>
-    set((state) => ({ score: state.score + points + state.bonus })),
+  updateScore: (points) => set((state) => ({ score: state.score + points })),
   updateBonus: (points) => set((state) => ({ bonus: state.bonus + points })),
 
   // Reset actions
@@ -55,8 +77,15 @@ export const useGameStore = create<GameStore>((set, get) => ({
       gameStatus: GameStatus.PLAYING,
     })),
 
-  loseLife: () => set((state) => ({ lives: Math.max(0, state.lives - 1) })),
-  gainLife: () => set((state) => ({ lives: state.lives + 1 })),
+  loseLife: () => {
+    set((state) => ({ lives: Math.max(0, state.lives - 1) }));
+    useAudioStore.getState().playSound(SoundEvent.LIFE_LOST, get());
+  },
+
+  gainLife: () => {
+    set((state) => ({ lives: state.lives + 1 }));
+    useAudioStore.getState().playSound(SoundEvent.LIFE_GAINED, get());
+  },
   setLevel: (level) => set({ level }),
 
   // Bomb collection actions
@@ -80,24 +109,30 @@ export const useGameStore = create<GameStore>((set, get) => ({
   deactivatePCoin: () => set({ pCoinActive: false, pCoinTimeLeft: 0 }),
   collectSpecialCoin: (type) =>
     set((state) => {
+      const audioStore = useAudioStore.getState();
+
       switch (type) {
         case "B":
+          audioStore.playSound(SoundEvent.POWER_UP, get());
           return {
             efficiencyMultiplier: Math.min(5, state.efficiencyMultiplier + 1),
             bCoinsCollected: state.bCoinsCollected + 1,
           };
         case "E":
+          audioStore.playSound(SoundEvent.LIFE_GAINED, get());
           return {
             lives: state.lives + 1,
             eCoinsCollected: state.eCoinsCollected + 1,
           };
         case "P":
+          audioStore.playSound(SoundEvent.POWER_UP, get());
           return {
             pCoinActive: true,
             pCoinTimeLeft: 5000,
             score: state.score + 100,
           };
         case "S":
+          audioStore.playSound(SoundEvent.POWER_UP, get());
           return {
             level: state.level + 1,
           };
@@ -117,4 +152,6 @@ export const useGameStore = create<GameStore>((set, get) => ({
   updateBombHighlighting: () => set((state) => state),
   setIsFullscreen: (value) => set({ isFullscreen: value }),
   getState: () => get(),
+  setLastBonusAndScore: (bonus: number, score: number) =>
+    set({ lastEarnedBonus: bonus, lastPreBonusScore: score }),
 }));

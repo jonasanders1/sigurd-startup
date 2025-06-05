@@ -4,6 +4,7 @@ import ResumeMenu from "./ui-screens/ResumeMenu";
 import GameOver from "./ui-screens/GameOver";
 import { GameStatus } from "../types/Game";
 import BonusScreen from "./ui-screens/BonusScreen";
+import Countdown from "./ui-screens/Countdown";
 
 export const GameMenu = ({
   canvasContainerRef,
@@ -23,6 +24,7 @@ export const GameMenu = ({
         {gameStatus === GameStatus.BONUS_SCREEN && (
           <BonusScreen correctOrderCount={correctOrderCount} />
         )}
+        {gameStatus === GameStatus.COUNTDOWN && <Countdown />}
       </div>
     </div>
   );

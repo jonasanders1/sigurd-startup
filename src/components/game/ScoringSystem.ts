@@ -6,6 +6,12 @@ export class ScoringSystem {
   private lastBCoinScore = 0;  // Track the last score threshold when B-coin was spawned
   private lastECoinThreshold = 0;  // Track the last threshold when E-coin was spawned
 
+  // Constants for scoring
+  private readonly B_COIN_SCORE_THRESHOLD = 5000;
+  private readonly E_COIN_LIVES_THRESHOLD = 3;
+  private readonly E_COIN_B_COINS_THRESHOLD = 8;
+  private readonly P_COIN_FIREBOMBS_THRESHOLD = 9;
+
   constructor(store: GameStore) {
     this.store = store;
   }
@@ -78,12 +84,11 @@ export class ScoringSystem {
 
   // Special coin spawn conditions
   public shouldSpawnPCoin(fireBombsCollected: number): boolean {
-    return fireBombsCollected >= 9;
+    return fireBombsCollected >= this.P_COIN_FIREBOMBS_THRESHOLD;
   }
 
   public shouldSpawnBCoin(score: number): boolean {
-    // Spawn B-coin every 5000 points (excluding bonus)
-    const currentThreshold = Math.floor(score / 5000);
+    const currentThreshold = Math.floor(score / this.B_COIN_SCORE_THRESHOLD);
     const shouldSpawn = currentThreshold > this.lastBCoinScore;
     
     if (shouldSpawn) {
@@ -94,7 +99,7 @@ export class ScoringSystem {
   }
 
   public shouldSpawnECoin(bCoinsCollected: number, lives: number): boolean {
-    const eCoinsNeeded = Math.max(1, 8 - (3 - lives));
+    const eCoinsNeeded = Math.max(1, this.E_COIN_B_COINS_THRESHOLD - (this.E_COIN_LIVES_THRESHOLD - lives));
     const shouldSpawn = bCoinsCollected >= eCoinsNeeded && bCoinsCollected > this.lastECoinThreshold;
     
     if (shouldSpawn) {
