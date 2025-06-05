@@ -4,6 +4,7 @@ import { CollisionDetection } from "./CollisionDetection";
 import { Renderer } from "./Renderer";
 import { useGameStore } from "@/components/stores/useGameStore";
 import { BonusType, GameStatus } from "../types/Game";
+import { ScoringSystem } from "./ScoringSystem";
 
 export interface GameState {
   score: number;
@@ -97,6 +98,11 @@ export class GameEngine {
   private physics: Physics;
   private collisionDetection: CollisionDetection;
   private renderer: Renderer;
+  private scoringSystem: ScoringSystem;
+
+  private wasTouchingWall = false;
+  private wasOnGround = false;
+  private hasSpawnedPCoin = false; // Track if we've already spawned a P-coin
 
   constructor(
     ctx: CanvasRenderingContext2D,
@@ -110,8 +116,9 @@ export class GameEngine {
 
     // Initialize modules
     this.physics = new Physics();
-    this.collisionDetection = new CollisionDetection();
+    this.collisionDetection = new CollisionDetection(store);
     this.renderer = new Renderer(ctx, width, height);
+    this.scoringSystem = new ScoringSystem(store);
 
     // Load the map from store
     const currentMapId = store.currentMapId;
@@ -154,19 +161,27 @@ export class GameEngine {
   }
 
   public switchToMap(mapId: string) {
-    console.log("switchToMap - Current map:", this.currentMap.id, "Target map:", mapId);
+    console.log(
+      "switchToMap - Current map:",
+      this.currentMap.id,
+      "Target map:",
+      mapId
+    );
     const newMap = getMapById(mapId);
-    
+
     if (newMap) {
       console.log("Found new map, showing bonus screen");
       this.store.setGameStatus(GameStatus.BONUS_SCREEN);
-      
+
       setTimeout(() => {
         console.log("Bonus screen timeout complete, loading new map");
         this.store.setGameStatus(GameStatus.PLAYING);
         this.store.updateScore(this.store.bonus, this.store.score);
         this.store.resetBonus();
         this.store.resetCorrectOrderCount();
+        // Reset group-related state
+        this.store.setActiveGroup(null);
+        this.store.resetCompletedGroups();
         this.loadMap(newMap);
         console.log("New map loaded:", newMap.id);
       }, 3000);
@@ -179,16 +194,21 @@ export class GameEngine {
     const currentIndex = mapDefinitions.findIndex(
       (m) => m.id === this.currentMap.id
     );
-    console.log("nextMap - Current index:", currentIndex, "Current map:", this.currentMap.id);
-    
+    console.log(
+      "nextMap - Current index:",
+      currentIndex,
+      "Current map:",
+      this.currentMap.id
+    );
+
     if (currentIndex < mapDefinitions.length - 1) {
       const nextMap = mapDefinitions[currentIndex + 1];
       console.log("Found next map:", nextMap.id);
-      
+
       // Increment level first
       this.store.setLevel(this.store.getState().level + 1);
       console.log("Level incremented to:", this.store.getState().level);
-      
+
       // Then switch maps
       this.switchToMap(nextMap.id);
     } else {
@@ -284,6 +304,9 @@ export class GameEngine {
     this.isJumpPressed = false;
     this.jumpHoldTime = 0;
     this.pCoinColorIndex = 0;
+    this.wasTouchingWall = false;
+    this.wasOnGround = false;
+    this.hasSpawnedPCoin = false; // Reset P-coin spawn tracking
     this.store.resetGame();
   }
 
@@ -295,13 +318,6 @@ export class GameEngine {
       this.jumpHoldTime
     );
     this.jumpHoldTime = jumpResult.newJumpHoldTime;
-    const wasJumpPressed = this.isJumpPressed;
-    this.isJumpPressed = this.keys["ArrowUp"] || this.keys["KeyW"];
-
-    // Update P coin color when jumping or hitting walls
-    if (this.isJumpPressed && !wasJumpPressed) {
-      this.updatePCoinColor();
-    }
 
     // Update player physics
     const playerPhysicsResult = this.physics.updatePlayerPhysics(
@@ -310,9 +326,28 @@ export class GameEngine {
       this.width,
       this.height
     );
-    if (playerPhysicsResult.hitWall) {
+
+    // State change detection for scoring
+    const isTouchingWall = playerPhysicsResult.hitWall;
+    const isOnGround = playerPhysicsResult.onGround;
+
+    // Score on state changes - BUT CHECK PREVIOUS STATES FIRST
+    if (isTouchingWall && !this.wasTouchingWall) {
+      const scoreToAdd = this.scoringSystem.scoreWallHit();
+      this.store.updateScore(scoreToAdd, this.store.getState().score);
       this.updatePCoinColor();
     }
+
+    // // Score jump when leaving the ground - CHECK PREVIOUS STATE
+    // if (!isOnGround && this.wasOnGround) {
+    //   const scoreToAdd = this.scoringSystem.scoreJump();
+    //   this.store.updateScore(scoreToAdd, this.store.getState().score);
+    //   this.updatePCoinColor();
+    // }
+
+    // UPDATE PREVIOUS STATES AFTER SCORING CHECKS
+    this.wasTouchingWall = isTouchingWall;
+    this.wasOnGround = isOnGround;
 
     // Update monsters
     this.updateMonsters();
@@ -321,13 +356,15 @@ export class GameEngine {
     this.collisionDetection.checkBombCollisions(
       this.player,
       this.bombs,
-      this.store
+      this.store,
+      this.currentMap
     );
     this.collisionDetection.checkMonsterCollisions(
       this.player,
       this.monsters,
       this.currentMap,
-      this.store
+      this.store,
+      this.pCoinColorIndex
     );
     this.checkSpecialCoinCollisions();
 
@@ -359,34 +396,34 @@ export class GameEngine {
       this.store.updateSpecialCoins();
     }
 
-    // Check for B coin spawning (every 5000 points)
-    const shouldSpawnBCoin =
-      Math.floor(state.score / 5000) > state.bCoinsCollected &&
-      state.bCoinsCollected < 5 &&
-      !this.specialCoins.some((c) => c.type === "B" && !c.collected);
+    // Check if any coins of each type already exist
+    const hasBCoin = this.specialCoins.some(
+      (coin) => coin.type === "B" && !coin.collected
+    );
+    const hasECoin = this.specialCoins.some(
+      (coin) => coin.type === "E" && !coin.collected
+    );
+    const hasPCoin = this.specialCoins.some(
+      (coin) => coin.type === "P" && !coin.collected
+    );
 
-    if (shouldSpawnBCoin) {
+    // Only spawn if no coin of that type exists
+    if (!hasBCoin && this.scoringSystem.shouldSpawnBCoin(state.score)) {
       this.spawnSpecialCoin("B");
     }
 
-    // Check for E coin spawning (after 8 B coins, or earlier if player lost lives)
-    const eCoinsNeeded = Math.max(1, 8 - (3 - state.lives));
-    const shouldSpawnECoin =
-      state.bCoinsCollected >= eCoinsNeeded &&
-      !this.specialCoins.some((c) => c.type === "E" && !c.collected);
-
-    if (shouldSpawnECoin) {
+    if (
+      !hasECoin &&
+      this.scoringSystem.shouldSpawnECoin(state.bCoinsCollected, state.lives)
+    ) {
       this.spawnSpecialCoin("E");
     }
 
-    // Check for P coin spawning (10 lit bombs OR 20 total bombs)
-    const litBombs = this.bombs.filter((b) => b.collected && b.isCorrectNext)
-      .length;
-    const shouldSpawnPCoin =
-      (litBombs >= 10 || state.bombsCollected.length >= 20) &&
-      !this.specialCoins.some((c) => c.type === "P" && !c.collected);
-
-    if (shouldSpawnPCoin) {
+    if (
+      !hasPCoin &&
+      this.scoringSystem.shouldSpawnPCoin(state.correctOrderCount)
+    ) {
+      console.log("Spawning P coin");
       this.spawnSpecialCoin("P");
     }
   }
@@ -469,6 +506,11 @@ export class GameEngine {
     const activeGroup = state.currentActiveGroup;
     const completedGroups = state.completedGroups;
 
+    // Get the next group in sequence that should be active
+    const nextGroupInSequence = this.currentMap.groupSequence.find(
+      (group) => !completedGroups.includes(group)
+    );
+
     this.bombs.forEach((bomb) => {
       // Reset highlighting
       bomb.isCorrectNext = false;
@@ -476,13 +518,13 @@ export class GameEngine {
 
       if (bomb.collected) return;
 
-      // If no active group, player can start with any bomb from available groups
+      // If no active group, only highlight bombs from the first group in sequence
       if (activeGroup === null) {
-        if (!completedGroups.includes(bomb.group)) {
+        if (bomb.group === nextGroupInSequence) {
           const groupBombs = this.bombs.filter(
             (b) => b.group === bomb.group && !b.collected
           );
-          // Only highlight the first available bomb in each group
+          // Only highlight the first available bomb in the group
           const firstBombInGroup = groupBombs.reduce((min, current) =>
             current.order < min.order ? current : min
           );
@@ -491,10 +533,7 @@ export class GameEngine {
         }
       }
       // If there's an active group, enforce strict sequential order within that group
-      else if (
-        bomb.group === activeGroup &&
-        !completedGroups.includes(bomb.group)
-      ) {
+      else if (bomb.group === activeGroup) {
         bomb.isInActiveGroup = true;
 
         // Find the next bomb in strict sequence within this group
@@ -520,8 +559,13 @@ export class GameEngine {
       const currentIndex = mapDefinitions.findIndex(
         (m) => m.id === this.currentMap.id
       );
-      console.log("Current map index:", currentIndex, "Current map:", this.currentMap.id);
-      
+      console.log(
+        "Current map index:",
+        currentIndex,
+        "Current map:",
+        this.currentMap.id
+      );
+
       if (currentIndex < mapDefinitions.length - 1) {
         console.log("Moving to next map...");
         this.nextMap();
@@ -534,16 +578,8 @@ export class GameEngine {
 
   private calculateFinalBonus() {
     const correctOrderCount = this.store.getState().correctOrderCount;
-
-    if (correctOrderCount === 24) {
-      this.store.updateBonus(BonusType.BIG);
-    } else if (correctOrderCount === 23) {
-      this.store.updateBonus(BonusType.MEDIUM);
-    } else if (correctOrderCount === 22) {
-      this.store.updateBonus(BonusType.SMALL);
-    } else {
-      this.store.updateBonus(0);
-    }
+    const bonus = this.scoringSystem.calculateEndLevelBonus(correctOrderCount);
+    this.store.updateBonus(bonus);
   }
 
   public render() {

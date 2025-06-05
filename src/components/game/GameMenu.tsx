@@ -13,7 +13,7 @@ export const GameMenu = ({
   const { gameStatus, correctOrderCount } = useGameStore();
 
   return (
-    <div className="absolute inset-0 bg-background/95 backdrop-blur-sm flex items-center justify-center">
+    <div className="absolute inset-0 bg-background/60 backdrop-blur-md flex items-center justify-center">
       <div className="text-center text-foreground font-mono">
         {gameStatus === GameStatus.MENU && (
           <StartMenu canvasContainerRef={canvasContainerRef} />

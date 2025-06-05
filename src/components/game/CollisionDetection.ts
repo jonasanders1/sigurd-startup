@@ -1,13 +1,25 @@
 import { Player, Bomb, Monster } from "./GameEngine";
 import { MapDefinition } from "./MapDefinitions";
 import { GameStatus, GameStore } from "@/components/types/Game";
+import { ScoringSystem } from "./ScoringSystem";
 
 export class CollisionDetection {
+  private scoringSystem: ScoringSystem;
+
+  constructor(store: GameStore) {
+    this.scoringSystem = new ScoringSystem(store);
+  }
+
   // Collision detection methods
-  public checkBombCollisions(player: Player, bombs: Bomb[], store: GameStore) {
+  public checkBombCollisions(
+    player: Player,
+    bombs: Bomb[],
+    store: GameStore,
+    currentMap: MapDefinition
+  ) {
     bombs.forEach((bomb) => {
       if (!bomb.collected && this.isColliding(player, bomb)) {
-        this.handleBombCollection(bomb, bombs, store);
+        this.handleBombCollection(bomb, bombs, store, currentMap);
       }
     });
   }
@@ -16,30 +28,57 @@ export class CollisionDetection {
     player: Player,
     monsters: Monster[],
     map: MapDefinition,
-    store: GameStore
+    store: GameStore,
+    pCoinColorIndex: number
   ) {
     monsters.forEach((monster) => {
       if (this.isColliding(player, monster)) {
-        this.handleMonsterCollision(player, monster, map, store);
+        this.handleMonsterCollision(
+          player,
+          monster,
+          map,
+          store,
+          pCoinColorIndex
+        );
       }
     });
   }
 
   // Helper methods
-  private handleBombCollection(bomb: Bomb, allBombs: Bomb[], store: GameStore) {
+  private handleBombCollection(
+    bomb: Bomb,
+    allBombs: Bomb[],
+    store: GameStore,
+    currentMap: MapDefinition
+  ) {
     const state = store.getState();
     bomb.collected = true;
+
+    // Get the next group in sequence that should be active
+    const nextGroupInSequence = currentMap.groupSequence.find(
+      (group) => !state.completedGroups.includes(group)
+    );
 
     // Group-based collection logic with strict order within groups
     let newActiveGroup = state.currentActiveGroup;
     const newCompletedGroups = [...state.completedGroups];
     let newCorrectOrderCount = state.correctOrderCount;
 
-    // If no active group, set this bomb's group as active
+    // If no active group, only allow collection from the next group in sequence
     if (newActiveGroup === null) {
-      newActiveGroup = bomb.group;
-      store.setActiveGroup(bomb.group);
-      console.log(`Started group ${bomb.group} with bomb ${bomb.order}`);
+      if (bomb.group === nextGroupInSequence) {
+        newActiveGroup = bomb.group;
+        store.setActiveGroup(bomb.group);
+        console.log(`Started group ${bomb.group} with bomb ${bomb.order}`);
+      } else {
+        // Penalty for trying to collect from wrong group
+        const scoreToAdd = this.scoringSystem.scoreNormalBomb() * 0.2; // 20% of normal bomb score
+        store.updateScore(scoreToAdd, state.score);
+        console.log(
+          `Wrong group! Must complete group ${nextGroupInSequence} first. +${scoreToAdd} kr`
+        );
+        return;
+      }
     }
 
     // Check if bomb is in the current active group
@@ -49,9 +88,7 @@ export class CollisionDetection {
     const groupBombs = allBombs.filter((b) => b.group === bomb.group);
     const collectedInGroup = groupBombs.filter((b) => b.collected).length;
 
-    // Base score for collecting a bomb
-    const baseScore = 10;
-    let multiplier = 1;
+    let scoreToAdd: number;
 
     if (isInActiveGroup) {
       // Find the expected next bomb in the group sequence
@@ -70,38 +107,26 @@ export class CollisionDetection {
         : Math.min(...uncollectedGroupBombs.map((b) => b.order), bomb.order);
 
       if (bomb.order === expectedNextOrder || isFirstBombInGroup) {
-        multiplier = 2; // Bonus for correct order within group
+        scoreToAdd = this.scoringSystem.scoreFireBomb(); // Double points for correct order
         newCorrectOrderCount++;
         store.incrementCorrectOrder();
         console.log(
-          `Correct group order! Bomb ${bomb.order} in group ${bomb.group}. +${
-            baseScore * multiplier * state.efficiencyMultiplier
-          } kr`
+          `Correct group order! Bomb ${bomb.order} in group ${bomb.group}. +${scoreToAdd} kr`
         );
       } else {
         // Wrong order within the active group - penalty
-        multiplier = 0.3;
+        scoreToAdd = this.scoringSystem.scoreNormalBomb() * 0.3; // 30% of normal bomb score
         console.log(
-          `Wrong order in group ${
-            bomb.group
-          }! Expected bomb ${expectedNextOrder}, got ${bomb.order}. +${
-            baseScore * multiplier * state.efficiencyMultiplier
-          } kr`
+          `Wrong order in group ${bomb.group}! Expected bomb ${expectedNextOrder}, got ${bomb.order}. +${scoreToAdd} kr`
         );
       }
     } else {
       // Penalty for collecting bomb outside active group
-      multiplier = 0.5;
+      scoreToAdd = this.scoringSystem.scoreNormalBomb() * 0.5; // 50% of normal bomb score
       console.log(
-        `Wrong group! Bomb ${bomb.order} (group ${
-          bomb.group
-        }) while working on group ${newActiveGroup}. +${
-          baseScore * multiplier * state.efficiencyMultiplier
-        } kr`
+        `Wrong group! Bomb ${bomb.order} (group ${bomb.group}) while working on group ${newActiveGroup}. +${scoreToAdd} kr`
       );
     }
-
-    const scoreToAdd = baseScore * multiplier * state.efficiencyMultiplier;
 
     // Add bomb to collected list
     store.addBombCollected({
@@ -115,7 +140,9 @@ export class CollisionDetection {
       newCompletedGroups.push(bomb.group);
       store.addCompletedGroup(bomb.group);
       store.setActiveGroup(null); // Reset active group so player can choose next
-      console.log(`Group ${bomb.group} completed! Choose your next group.`);
+      console.log(
+        `Group ${bomb.group} completed! Moving to next group in sequence.`
+      );
     }
 
     // Update store with new state
@@ -127,15 +154,16 @@ export class CollisionDetection {
     player: Player,
     monster: Monster,
     map: MapDefinition,
-    store: GameStore
+    store: GameStore,
+    pCoinColorIndex: number
   ) {
     const state = store.getState();
 
     // If P coin power mode is active, convert monster to points instead of damage
     if (state.pCoinActive) {
-      const pointValue = 500 * state.efficiencyMultiplier;
-      console.log(`Monster converted to ${pointValue} kr during power mode!`);
-      store.updateScore(pointValue, state.score);
+      const scoreToAdd = this.scoringSystem.scoreMonsterKill(pCoinColorIndex);
+      console.log(`Monster converted to ${scoreToAdd} kr during power mode!`);
+      store.updateScore(scoreToAdd, state.score);
     } else {
       // Normal collision - lose life
       console.log(
@@ -151,7 +179,10 @@ export class CollisionDetection {
       player.velocityX = 0;
       player.velocityY = 0;
 
+      // Reset correct order count and lose life
+      store.setCorrectOrderCount(state.correctOrderCount - 1);
       store.loseLife();
+
       if (state.lives <= 1) {
         store.setGameStatus(GameStatus.GAME_OVER);
       }

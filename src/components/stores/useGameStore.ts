@@ -43,7 +43,9 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
   // Reset actions
   resetCorrectOrderCount: () => set({ correctOrderCount: 0 }),
+  setCorrectOrderCount: (count: number) => set({ correctOrderCount: count }),
   resetBonus: () => set({ bonus: 0 }),
+  resetCompletedGroups: () => set({ completedGroups: [] }),
   resetGame: () =>
     set((state) => ({
       ...INITIAL_STATE,

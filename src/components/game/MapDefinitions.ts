@@ -33,6 +33,7 @@ export interface MapDefinition {
   monsters: MapMonster[];
   backgroundColor: string;
   theme: string;
+  groupSequence: number[]; // The order in which groups must be completed
 }
 
 // Map 1: Basic Training Ground - Grouped bomb placement
@@ -45,6 +46,7 @@ export const map1: MapDefinition = {
   playerStartY: 450,
   backgroundColor: '#1E293B',
   theme: 'office',
+  groupSequence: [1, 2, 3, 4, 5, 6], // Groups must be completed in order
   platforms: [
     // Solid ground platform (no holes)
     { x: 0, y: 550, width: 800, height: 50 },
@@ -105,6 +107,7 @@ export const map2: MapDefinition = {
   playerStartY: 450,
   backgroundColor: '#374151',
   theme: 'government',
+  groupSequence: [1, 2, 3, 4, 5, 6], // Groups must be completed in order
   platforms: [
     // Solid ground platform (no holes)
     { x: 0, y: 550, width: 800, height: 50 },
@@ -170,6 +173,7 @@ export const map3: MapDefinition = {
   playerStartY: 520,
   backgroundColor: '#1F2937',
   theme: 'tech',
+  groupSequence: [1, 2, 3, 4, 5, 6], // Groups must be completed in order
   platforms: [
     // Solid ground platform (no holes)
     { x: 0, y: 550, width: 800, height: 50 },

@@ -7,7 +7,8 @@ export interface BombCollected {
 export enum BonusType {
   BIG = 50000,
   MEDIUM = 30000,
-  SMALL = 10000,
+  SMALL = 20000,
+  TINY = 10000,
   NONE = 0,
 }
 
@@ -58,6 +59,8 @@ export interface GameStore {
   updateBonus: (points: number) => void;
   resetBonus: () => void;
   resetCorrectOrderCount: () => void;
+  resetCompletedGroups: () => void;
+  setCorrectOrderCount: (count: number) => void;
   // Bomb collection actions
   addBombCollected: (bomb: BombCollected) => void;
   incrementCorrectOrder: () => void;
