@@ -2,11 +2,15 @@ import { useEffect, useState } from "react";
 import { useGameStore } from "@/components/stores/useGameStore";
 import { GameStatus } from "@/components/types/Game";
 import { useAudioStore, SoundEvent } from "@/components/stores/useAudioStore";
+import { useCurrentMapName } from "@/components/stores/useGameStore";
 
 const Countdown = () => {
   const [count, setCount] = useState(3);
   const setGameStatus = useGameStore((state) => state.setGameStatus);
   const audioStore = useAudioStore();
+  const mapName = useCurrentMapName();
+
+  const state = useGameStore((state) => state);
 
   useEffect(() => {
     if (count === 0) {
@@ -27,14 +31,15 @@ const Countdown = () => {
 
   return (
     <div
-      className="absolute inset-0 flex items-center justify-center transition-all duration-1000"
+      className="absolute inset-0 flex flex-col items-center justify-center gap-4 transition-all duration-1000"
       style={{
         backgroundColor: `rgba(var(--background), ${blurOpacity * 0.6})`,
         backdropFilter: `blur(${blurOpacity * 4}px)`,
       }}
     >
-      <div className="text-9xl font-bold text-primary animate-bounce">
+      <div className="text-7xl font-bold text-primary">
         {count}
+        <div className="text-2xl">{mapName}</div>
       </div>
     </div>
   );

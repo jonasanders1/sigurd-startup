@@ -10,14 +10,8 @@ const GameOver = () => {
     efficiencyMultiplier,
     bCoinsCollected,
     eCoinsCollected,
-    startGame,
     resetGame,
   } = useGameStore();
-
-  const handlePlayAgain = () => {
-    resetGame();
-    startGame();
-  };
 
   return (
     <div className="flex flex-col items-center justify-center gap-4">
@@ -39,7 +33,7 @@ const GameOver = () => {
         {eCoinsCollected}
       </p>
       <Button
-        onClick={handlePlayAgain}
+        onClick={resetGame}
         className="bg-accent hover:bg-accent/90 text-accent-foreground font-bold"
       >
         <Play className="w-4 h-4 mr-2" />

@@ -2,6 +2,7 @@ import { create } from "zustand";
 import { BonusType, GameStatus } from "../types/Game";
 import { GameStore, BombCollected } from "@/components/types/Game";
 import { useAudioStore, SoundEvent } from "./useAudioStore";
+import { getMapById } from "../game/MapDefinitions";
 
 const INITIAL_STATE = {
   score: 0,
@@ -74,7 +75,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       level: state.level,
       score: state.score,
       currentMapId: state.currentMapId,
-      gameStatus: GameStatus.PLAYING,
+      gameStatus: GameStatus.COUNTDOWN,
     })),
 
   loseLife: () => {
@@ -155,3 +156,9 @@ export const useGameStore = create<GameStore>((set, get) => ({
   setLastBonusAndScore: (bonus: number, score: number) =>
     set({ lastEarnedBonus: bonus, lastPreBonusScore: score }),
 }));
+
+// Add a selector to get the current map name
+export const useCurrentMapName = () => {
+  const currentMapId = useGameStore((state) => state.currentMapId);
+  return getMapById(currentMapId)?.name;
+};

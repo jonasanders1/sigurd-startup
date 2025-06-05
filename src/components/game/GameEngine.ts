@@ -91,8 +91,6 @@ export class GameEngine {
   private platforms: Platform[];
   private specialCoins: SpecialCoin[];
   private keys: { [key: string]: boolean } = {};
-  private jumpHoldTime = 0;
-  private isJumpPressed = false;
   private pCoinColors = ["#3B82F6", "#10B981", "#F59E0B", "#EF4444", "#C0C0C0"]; // Blue to Silver
   private pCoinColorIndex = 0;
 
@@ -298,8 +296,6 @@ export class GameEngine {
 
   public reset() {
     this.loadMap(this.currentMap);
-    this.isJumpPressed = false;
-    this.jumpHoldTime = 0;
     this.pCoinColorIndex = 0;
     this.wasTouchingWall = false;
     this.store.resetGame();
@@ -307,12 +303,7 @@ export class GameEngine {
 
   public update() {
     // Handle input and update player movement
-    const jumpResult = this.physics.updatePlayerMovement(
-      this.player,
-      this.keys,
-      this.jumpHoldTime
-    );
-    this.jumpHoldTime = jumpResult.newJumpHoldTime;
+    this.physics.updatePlayerMovement(this.player, this.keys);
 
     // Update player physics
     const playerPhysicsResult = this.physics.updatePlayerPhysics(
