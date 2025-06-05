@@ -22,8 +22,17 @@ const Countdown = () => {
     return () => clearTimeout(timer);
   }, [count, setGameStatus, audioStore]);
 
+  // Calculate opacity based on count
+  const blurOpacity = count / 3; // This will go from 1 to 0.33
+
   return (
-    <div className="fixed inset-0 flex items-center justify-center bg-background/80 backdrop-blur-sm">
+    <div
+      className="absolute inset-0 flex items-center justify-center transition-all duration-1000"
+      style={{
+        backgroundColor: `rgba(var(--background), ${blurOpacity * 0.6})`,
+        backdropFilter: `blur(${blurOpacity * 4}px)`,
+      }}
+    >
       <div className="text-9xl font-bold text-primary animate-bounce">
         {count}
       </div>

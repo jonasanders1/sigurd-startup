@@ -171,8 +171,8 @@ export class GameEngine {
     const newMap = getMapById(mapId);
 
     if (newMap) {
-      this.store.setGameStatus(GameStatus.COUNTDOWN);
       this.loadMap(newMap);
+      this.store.setGameStatus(GameStatus.COUNTDOWN);
       // Reset group-related state, etc. (as before)
       this.store.resetCorrectOrderCount();
       this.store.setActiveGroup(null);

@@ -36,20 +36,23 @@ export const GameContainer: React.FC = () => {
     }
   }, []); // Empty dependency array - only run once
 
-  // Game loop in separate effect
+  // Game loop in separate effect - always run but only update game logic when playing
   useEffect(() => {
     let animationId: number;
     const gameLoop = () => {
-      if (gameEngineRef.current && gameStatus === "playing") {
-        gameEngineRef.current.update();
+      if (gameEngineRef.current) {
+        // Always render the map
         gameEngineRef.current.render();
+
+        // Only update game logic when playing
+        if (gameStatus === "playing") {
+          gameEngineRef.current.update();
+        }
       }
       animationId = requestAnimationFrame(gameLoop);
     };
 
-    if (gameStatus === "playing") {
-      gameLoop();
-    }
+    gameLoop();
 
     return () => {
       if (animationId) {
@@ -75,12 +78,12 @@ export const GameContainer: React.FC = () => {
           style={{ imageRendering: "crisp-edges" }}
         />
 
-        {/* In-game UI */}
+        {/* In-game UI - only show when playing */}
         {gameStatus === "playing" && (
           <InGameMenu canvasContainerRef={canvasContainerRef} />
         )}
 
-        {/* Menu Screens */}
+        {/* Menu Screens - show as overlay for all non-playing states */}
         {gameStatus !== "playing" && (
           <GameMenu canvasContainerRef={canvasContainerRef} />
         )}
