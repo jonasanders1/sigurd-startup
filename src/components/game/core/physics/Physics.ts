@@ -1,25 +1,19 @@
-import { MovementState, PhysicsConfig, PhysicsResult } from "../types/Physics";
-import { Platform, Player } from "../types/GameEngine";
+import { MovementState, PhysicsResult } from "../../../types/Physics";
+import { Platform, Player } from "../../../types/GameEngine";
+import { PhysicsConfig, IPhysicsConfig } from "../../config/PhysicsConfig";
 
 export class Physics {
-  private config: PhysicsConfig = {
-    gravity: 0.15,
-    fastFallGravity: 0.8,
-    friction: 0.8,
-    moveSpeed: 5,
-    jumpForce: -13,
-    maxJumpTime: 300, // milliseconds
-    floatForce: -4, // Upward force per float input
-    maxFloatSpeed: -4, // Maximum upward speed when floating
-    groundTolerance: 2,
-  };
-
+  private config: IPhysicsConfig;
   private movementState: MovementState = {
     isJumping: false,
     jumpStartTime: 0,
     wasFloatPressed: false,
     lastGroundedTime: 0,
   };
+
+  constructor() {
+    this.config = PhysicsConfig.getDefaultConfig();
+  }
 
   /**
    * Handle all player input and apply movement forces
@@ -87,12 +81,12 @@ export class Physics {
     const rightPressed = keys["ArrowRight"] || keys["KeyD"];
 
     if (leftPressed) {
-      player.velocityX = -this.config.moveSpeed;
+      player.velocityX = -this.config.player.horizontalSpeed;
     } else if (rightPressed) {
-      player.velocityX = this.config.moveSpeed;
+      player.velocityX = this.config.player.horizontalSpeed;
     } else {
       // Apply friction when no input
-      player.velocityX *= this.config.friction;
+      player.velocityX *= this.config.player.friction;
 
       // Stop very small movements to prevent jitter
       if (Math.abs(player.velocityX) < 0.1) {
@@ -125,7 +119,7 @@ export class Physics {
 
     if (jumpPressed && player.onGround && !this.movementState.isJumping) {
       // Start new jump
-      player.velocityY = this.config.jumpForce;
+      player.velocityY = -this.config.player.jumpForce;
       player.onGround = false;
       this.movementState.isJumping = true;
       this.movementState.jumpStartTime = currentTime;
@@ -136,16 +130,14 @@ export class Physics {
     ) {
       // Continue jump if within max time and moving upward
       const jumpDuration = currentTime - this.movementState.jumpStartTime;
+      const maxJumpTime = 300; // milliseconds
 
-      if (jumpDuration < this.config.maxJumpTime && player.velocityY < 0) {
+      if (jumpDuration < maxJumpTime && player.velocityY < 0) {
         // Reduce upward velocity gradually for variable jump height
-        const jumpMultiplier = Math.max(
-          0.3,
-          1 - jumpDuration / this.config.maxJumpTime
-        );
+        const jumpMultiplier = Math.max(0.3, 1 - jumpDuration / maxJumpTime);
         player.velocityY = Math.min(
           player.velocityY,
-          this.config.jumpForce * jumpMultiplier
+          -this.config.player.jumpForce * jumpMultiplier
         );
       }
     } else if (
@@ -169,13 +161,15 @@ export class Physics {
   private handleFloating(player: Player, floatPressed: boolean): void {
     if (
       floatPressed &&
-      !this.movementState.wasFloatPressed &&
       !player.onGround &&
       player.velocityY > 0 // Only allow floating when falling
     ) {
-      // Reduce falling speed by applying a small upward force
-      // but never enough to make the player go up
-      player.velocityY = Math.min(player.velocityY, 0.5); // Cap falling speed to 2.0
+      // If moving sideways while floating, reduce falling speed even more
+      const isMovingSideways = Math.abs(player.velocityX) > 0;
+      const floatMultiplier = isMovingSideways ? 0.5 : 1.0;
+
+      // Actually reduce the falling speed instead of just capping it
+      player.velocityY *= this.config.player.floatSpeed * floatMultiplier;
     }
 
     this.movementState.wasFloatPressed = floatPressed;
@@ -186,7 +180,7 @@ export class Physics {
    */
   private handleFastFall(player: Player, fastFallPressed: boolean): void {
     if (fastFallPressed && !player.onGround) {
-      player.velocityY += this.config.fastFallGravity;
+      player.velocityY += this.config.player.gravity / 2; // Double gravity for fast fall
     }
   }
 
@@ -195,7 +189,7 @@ export class Physics {
    */
   private applyGravity(player: Player): void {
     if (!player.onGround) {
-      player.velocityY += this.config.gravity;
+      player.velocityY += this.config.player.gravity;
     }
   }
 
@@ -367,7 +361,8 @@ export class Physics {
   } {
     const currentTime = Date.now();
     const nearGround =
-      player.y >= canvasHeight - player.height - this.config.groundTolerance;
+      player.y >=
+      canvasHeight - player.height - this.config.player.groundTolerance;
     const isOnGround = platformCollisions.isOnAnyPlatform || nearGround;
 
     // Update player ground state
@@ -391,7 +386,17 @@ export class Physics {
   }
 
   /**
-   * Reset physics state (for level restart, etc.)
+   * Update configuration based on level and game state
+   */
+  public updateConfig(level: number): void {
+    this.config = {
+      ...this.config,
+      ...PhysicsConfig.getConfigForLevel(level),
+    };
+  }
+
+  /**
+   * Reset physics state
    */
   public reset(): void {
     this.movementState = {
@@ -403,16 +408,9 @@ export class Physics {
   }
 
   /**
-   * Get current movement state (for debugging)
+   * Get current movement state
    */
   public getMovementState(): MovementState {
     return { ...this.movementState };
-  }
-
-  /**
-   * Update physics configuration
-   */
-  public updateConfig(newConfig: Partial<PhysicsConfig>): void {
-    this.config = { ...this.config, ...newConfig };
   }
 }

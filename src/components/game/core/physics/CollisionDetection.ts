@@ -1,15 +1,16 @@
-import { Player, Bomb, Monster } from "./GameEngine";
-import { MapDefinition } from "./MapDefinitions";
+import { Player, Bomb } from "@/components/types/GameEngine";
+import { Monster } from "@/components/types/Monster";
+import { MapDefinition } from "../../config/MapDefinitions";
 import { GameStatus, GameStore } from "@/components/types/Game";
-import { ScoringSystem } from "./ScoringSystem";
+import { ScoringSystem } from "../systems/ScoringSystem";
 
 export class CollisionDetection {
   private scoringSystem: ScoringSystem;
 
   // Constants for scoring multipliers
-  private readonly WRONG_GROUP_PENALTY = 0.2;  // 20% of normal bomb score
-  private readonly WRONG_ORDER_PENALTY = 0.3;  // 30% of normal bomb score
-  private readonly OUTSIDE_GROUP_PENALTY = 0.5;  // 50% of normal bomb score
+  private readonly WRONG_GROUP_PENALTY = 0.2; // 20% of normal bomb score
+  private readonly WRONG_ORDER_PENALTY = 0.3; // 30% of normal bomb score
+  private readonly OUTSIDE_GROUP_PENALTY = 0.5; // 50% of normal bomb score
 
   constructor(store: GameStore) {
     this.scoringSystem = new ScoringSystem(store);
@@ -77,7 +78,8 @@ export class CollisionDetection {
         console.log(`Started group ${bomb.group} with bomb ${bomb.order}`);
       } else {
         // Penalty for trying to collect from wrong group
-        const scoreToAdd = this.scoringSystem.scoreNormalBomb() * this.WRONG_GROUP_PENALTY;
+        const scoreToAdd =
+          this.scoringSystem.scoreNormalBomb() * this.WRONG_GROUP_PENALTY;
         store.updateScore(scoreToAdd, state.score);
         console.log(
           `Wrong group! Must complete group ${nextGroupInSequence} first. +${scoreToAdd} kr`
@@ -120,14 +122,16 @@ export class CollisionDetection {
         );
       } else {
         // Wrong order within the active group - penalty
-        scoreToAdd = this.scoringSystem.scoreNormalBomb() * this.WRONG_ORDER_PENALTY;
+        scoreToAdd =
+          this.scoringSystem.scoreNormalBomb() * this.WRONG_ORDER_PENALTY;
         console.log(
           `Wrong order in group ${bomb.group}! Expected bomb ${expectedNextOrder}, got ${bomb.order}. +${scoreToAdd} kr`
         );
       }
     } else {
       // Penalty for collecting bomb outside active group
-      scoreToAdd = this.scoringSystem.scoreNormalBomb() * this.OUTSIDE_GROUP_PENALTY;
+      scoreToAdd =
+        this.scoringSystem.scoreNormalBomb() * this.OUTSIDE_GROUP_PENALTY;
       console.log(
         `Wrong group! Bomb ${bomb.order} (group ${bomb.group}) while working on group ${newActiveGroup}. +${scoreToAdd} kr`
       );

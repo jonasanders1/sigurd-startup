@@ -12,7 +12,7 @@ export const InGameMenu: React.FC<{
     level,
     lives,
     pauseGame,
-    resetGame,
+    resetAll,
     isFullscreen,
     setIsFullscreen,
   } = useGameStore();
@@ -52,7 +52,7 @@ export const InGameMenu: React.FC<{
           <Pause className="w-4 h-4" />
         </Button>
         <Button
-          onClick={resetGame}
+          onClick={resetAll}
           variant="outline"
           size="sm"
           className="bg-background/90 hover:bg-muted border border-border font-bold"

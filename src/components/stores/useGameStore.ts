@@ -2,7 +2,7 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { BonusType, GameStatus } from "../types/Game";
 import { GameStore, BombCollected } from "@/components/types/Game";
-import { getMapById } from "../game/MapDefinitions";
+import { getMapById } from "../game/config/MapDefinitions";
 
 const INITIAL_STATE = {
   score: 0,
@@ -23,7 +23,9 @@ const INITIAL_STATE = {
   isFullscreen: false,
   lastEarnedBonus: 0,
   lastPreBonusScore: 0,
+  isPlayGround: false,
 };
+
 
 export const useGameStore = create<GameStore>()(
   persist(
@@ -38,6 +40,10 @@ export const useGameStore = create<GameStore>()(
 
       startGame: () => {
         set({ gameStatus: GameStatus.COUNTDOWN });
+      },
+
+      startPlayGround: () => {
+        set({ gameStatus: GameStatus.PLAYING });
       },
 
       pauseGame: () =>
@@ -74,10 +80,31 @@ export const useGameStore = create<GameStore>()(
       resetGame: () =>
         set((state) => ({
           ...INITIAL_STATE,
+          // Don't reset these values
           level: state.level,
           score: state.score,
           currentMapId: state.currentMapId,
-          gameStatus: GameStatus.COUNTDOWN,
+          // Reset game status based on current state
+          gameStatus: state.isPlayGround ? GameStatus.PLAYING : GameStatus.MENU,
+          // Reset all game progress
+          bombsCollected: [],
+          correctOrderCount: 0,
+          bCoinsCollected: 0,
+          eCoinsCollected: 0,
+          pCoinActive: false,
+          pCoinTimeLeft: 0,
+          currentActiveGroup: null,
+          completedGroups: [],
+          efficiencyMultiplier: 1,
+          lastEarnedBonus: 0,
+          lastPreBonusScore: 0,
+        })),
+
+      // Add a new function for complete reset
+      resetAll: () =>
+        set(() => ({
+          ...INITIAL_STATE,
+          gameStatus: GameStatus.MENU,
         })),
 
       // Life management - NO AUDIO CALLS
@@ -85,6 +112,11 @@ export const useGameStore = create<GameStore>()(
         set((state) => ({ lives: Math.max(0, state.lives - 1) }));
         // AudioManager will handle life lost sound via GameEngine
       },
+
+      setIsPlayGround: (value: boolean) => set({ isPlayGround: value }),
+
+      togglePlayGround: () =>
+        set((state) => ({ isPlayGround: !state.isPlayGround })),
 
       gainLife: () => {
         set((state) => ({ lives: state.lives + 1 }));
@@ -118,50 +150,27 @@ export const useGameStore = create<GameStore>()(
 
       deactivatePCoin: () => set({ pCoinActive: false, pCoinTimeLeft: 0 }),
 
-      collectSpecialCoin: (type: "B" | "E" | "P" | "S") =>
-        set((state) => {
-          // NO audio calls here - AudioManager handles this via GameEngine
-          switch (type) {
-            case "B":
-              return {
-                efficiencyMultiplier: Math.min(
-                  5,
-                  state.efficiencyMultiplier + 1
-                ),
-                bCoinsCollected: state.bCoinsCollected + 1,
-              };
-            case "E":
-              return {
-                lives: state.lives + 1,
-                eCoinsCollected: state.eCoinsCollected + 1,
-              };
-            case "P":
-              return {
-                pCoinActive: true,
-                pCoinTimeLeft: 5000,
-                score: state.score + 100,
-              };
-            case "S":
-              return {
-                level: state.level + 1,
-              };
-            default:
-              return state;
-          }
-        }),
+      collectSpecialCoin: (type: "B" | "E" | "P" | "S") => {
+        switch (type) {
+          case "B":
+            set((state) => ({ bCoinsCollected: state.bCoinsCollected + 1 }));
+            break;
+          case "E":
+            set((state) => ({ eCoinsCollected: state.eCoinsCollected + 1 }));
+            break;
+          case "P":
+            set({ pCoinActive: true, pCoinTimeLeft: 10 });
+            break;
+        }
+      },
 
-      updateSpecialCoins: () =>
-        set((state) => {
-          if (state.pCoinActive && state.pCoinTimeLeft > 0) {
-            const newPCoinTimeLeft = state.pCoinTimeLeft - 16; // Roughly 60fps
-            return newPCoinTimeLeft <= 0
-              ? { pCoinActive: false, pCoinTimeLeft: 0 }
-              : { pCoinTimeLeft: newPCoinTimeLeft };
-          }
-          return state;
-        }),
+      updateBombHighlighting: () => {
+        // This is handled by the GameEngine
+      },
 
-      updateBombHighlighting: () => set((state) => state),
+      updateSpecialCoins: () => {
+        // This is handled by the GameEngine
+      },
 
       setIsFullscreen: (value: boolean) => set({ isFullscreen: value }),
 
@@ -171,14 +180,7 @@ export const useGameStore = create<GameStore>()(
         set({ lastEarnedBonus: bonus, lastPreBonusScore: score }),
     }),
     {
-      name: "sigurd-game-state", // localStorage key
-      version: 1,
-      // Only persist certain game state, not temporary state
-      partialize: (state) => ({
-        level: state.level,
-        currentMapId: state.currentMapId,
-        // Don't persist score, lives, etc. - those should reset
-      }),
+      name: "game-storage",
     }
   )
 );

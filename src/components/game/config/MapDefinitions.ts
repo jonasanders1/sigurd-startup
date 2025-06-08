@@ -1,4 +1,5 @@
-import { MonsterType } from "../types/Monster";
+import { platform } from "os";
+import { MonsterType } from "../../types/Monster";
 
 export interface MapPlatform {
   x: number;
@@ -97,21 +98,21 @@ export const map1: MapDefinition = {
     { x: 700, y: 120, order: 24, group: 6 },
   ],
   monsters: [
-    {
-      x: 200,
-      y: 400,
-      type: MonsterType.REGULATOR,
-      patrolStartX: 150,
-      patrolEndX: 300,
-      speed: 1,
-    },
+    // {
+    //   x: 200,
+    //   y: 400,
+    //   type: MonsterType.REGULATOR,
+    //   patrolStartX: 150,
+    //   patrolEndX: 300,
+    //   speed: 0.0001,
+    // },
     {
       x: 500,
       y: 250,
       type: MonsterType.TAXMAN,
       patrolStartX: 400,
       patrolEndX: 600,
-      speed: 1.5,
+      speed: 0.01,
     },
     {
       x: 500,
@@ -265,14 +266,14 @@ export const map3: MapDefinition = {
     { x: 400, y: 90, order: 24, group: 6 },
   ],
   monsters: [
-    {
-      x: 300,
-      y: 420,
-      type: MonsterType.REGULATOR,
-      patrolStartX: 250,
-      patrolEndX: 550,
-      speed: 0.8,
-    },
+    // {
+    //   x: 300,
+    //   y: 420,
+    //   type: MonsterType.REGULATOR,
+    //   patrolStartX: 250,
+    //   patrolEndX: 550,
+    //   speed: 0.8,
+    // },
     {
       x: 150,
       y: 300,
@@ -284,8 +285,103 @@ export const map3: MapDefinition = {
   ],
 };
 
-export const mapDefinitions: MapDefinition[] = [map1, map2, map3];
+export const playgroundMap: MapDefinition = {
+  id: "playground",
+  name: "Playground",
+  width: 800,
+  height: 600,
+  playerStartX: 375,
+  playerStartY: 300,
+  backgroundColor: "#1F2937",
+  theme: "tech",
+  groupSequence: [], // Groups must be completed in order
+  platforms: [
+    // Solid ground platform (no holes)
+    { x: 0, y: 550, width: 800, height: 50 },
 
+    // UPPER PLATFORMS
+    { x: 110, y: 130, width: 200, height: 20 },
+    { x: 430, y: 130, width: 200, height: 20 },
+
+    // MIDDLE PLATFORM
+    { x: 360, y: 350, width: 200, height: 20 },
+
+    // LOWER PLATFORMS
+    { x: 80, y: 400, width: 200, height: 20 },
+    { x: 490, y: 450, width: 200, height: 20 },
+  ],
+  bombs: [
+    { x: 400, y: 160, order: 1, group: 1 },
+    { x: 460, y: 160, order: 2, group: 1 },
+    { x: 510, y: 160, order: 3, group: 1 },
+    { x: 570, y: 160, order: 4, group: 1 },
+
+    // RIGHT VERTICAL PLATFORMS
+    { x: 770, y: 200, order: 5, group: 2 },
+    { x: 770, y: 260, order: 6, group: 2 },
+    { x: 770, y: 310, order: 7, group: 2 },
+    { x: 770, y: 370, order: 8, group: 2 },
+
+    // LEFT VERTICAL PLATFORMS
+    { x: 10, y: 200, order: 9, group: 3 },
+    { x: 10, y: 260, order: 10, group: 3 },
+    { x: 10, y: 310, order: 11, group: 3 },
+    { x: 10, y: 370, order: 12, group: 3 },
+
+    // SECOND LOWEST BOMBS
+    { x: 610, y: 420, order: 16, group: 5 },
+    { x: 550, y: 420, order: 17, group: 5 },
+    { x: 490, y: 420, order: 18, group: 5 },
+
+    // BOTTOM LEFT BOMBS
+    { x: 220, y: 500, order: 19, group: 6 },
+    { x: 160, y: 500, order: 20, group: 6 },
+    { x: 100, y: 500, order: 21, group: 6 },
+
+    // TOP LEFT BOMBS
+    { x: 100, y: 20, order: 13, group: 4 },
+    { x: 160, y: 20, order: 14, group: 4 },
+    { x: 220, y: 20, order: 15, group: 4 },
+
+    // TOP RIGHT BOMBS
+    { x: 760, y: 20, order: 22, group: 7 },
+    { x: 710, y: 20, order: 23, group: 7 },
+    { x: 660, y: 20, order: 24, group: 7 },
+  ],
+  monsters: [
+    // {
+    //   x: 430,
+    //   y: 100,
+    //   type: MonsterType.BUREAUCRAT,
+    //   patrolStartX: 430,
+    //   patrolEndX: 630,
+    //   speed: 1.5,
+    // },
+    // {
+    //   x: 490,
+    //   y: 420,
+    //   type: MonsterType.BUREAUCRAT,
+    //   patrolStartX: 490,
+    //   patrolEndX: 690,
+    //   speed: 1.5,
+    // },
+    {
+      x: 490,
+      y: 420,
+      type: MonsterType.BUREAUCRAT_CLONE,
+      patrolStartX: 490,
+      patrolEndX: 690,
+      speed: 1.5,
+    },
+  ],
+};
+
+export const mapDefinitions: MapDefinition[] = [
+  map1,
+  map2,
+  map3,
+  playgroundMap,
+];
 export const getMapById = (id: string): MapDefinition | undefined => {
   return mapDefinitions.find((map) => map.id === id);
 };

@@ -1,5 +1,5 @@
-import { GameStatus } from "../types/Game";
-import { AudioConfig, AudioAssets } from "../types/Audio";
+import { GameStatus } from "../../types/Game";
+import { AudioConfig, AudioAssets } from "../../types/Audio";
 
 export class AudioManager {
   private config: AudioConfig;

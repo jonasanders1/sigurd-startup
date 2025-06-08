@@ -10,7 +10,7 @@ const GameOver = () => {
     efficiencyMultiplier,
     bCoinsCollected,
     eCoinsCollected,
-    resetGame,
+    resetAll,
   } = useGameStore();
 
   return (
@@ -33,7 +33,7 @@ const GameOver = () => {
         {eCoinsCollected}
       </p>
       <Button
-        onClick={resetGame}
+        onClick={resetAll}
         className="bg-accent hover:bg-accent/90 text-accent-foreground font-bold"
       >
         <Play className="w-4 h-4 mr-2" />

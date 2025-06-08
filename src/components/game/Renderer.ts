@@ -1,6 +1,6 @@
 import { Player, Bomb, Platform, SpecialCoin } from "../types/GameEngine";
 import { Monster, MonsterType } from "../types/Monster";
-import { MapDefinition } from "./MapDefinitions";
+import { MapDefinition } from "./config/MapDefinitions";
 
 export class Renderer {
   private ctx: CanvasRenderingContext2D;

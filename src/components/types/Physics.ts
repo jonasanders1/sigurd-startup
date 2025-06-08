@@ -2,7 +2,7 @@ export interface PhysicsConfig {
   gravity: number;
   fastFallGravity: number;
   friction: number;
-  moveSpeed: number;
+  horizontalSpeed: number;
   jumpForce: number;
   maxJumpTime: number;
   floatForce: number;

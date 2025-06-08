@@ -1,17 +1,25 @@
 import React, { useRef, useEffect, useState } from "react";
-import { GameEngine } from "./GameEngine";
+import { GameEngine } from "./core/GameEngine";
 import { DebugPanel } from "./DebugPanel";
 import { PowerModeOverlay } from "./PowerModeOverlay";
 import { GameMenu } from "./GameMenu";
 import { InGameMenu } from "./ui-screens/InGameMenu";
 import { useGameStore } from "@/components/stores/useGameStore";
+import { GameEngineConfig } from "./config/GameEngineConfig";
 
 export const GameContainer: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const canvasContainerRef = useRef<HTMLDivElement>(null);
   const gameEngineRef = useRef<GameEngine | null>(null);
+  // const [isPlayGround, setIsPlayGround] = useState(true);
 
-  const { gameStatus, pCoinActive, isFullscreen } = useGameStore();
+  const {
+    gameStatus,
+    pCoinActive,
+    isFullscreen,
+    startPlayGround,
+    isPlayGround,
+  } = useGameStore();
 
   // Initialize game engine only once
   useEffect(() => {
@@ -25,16 +33,28 @@ export const GameContainer: React.FC = () => {
     canvas.width = 800;
     canvas.height = 600;
 
-    // Initialize game engine only if it doesn't exist
-    if (!gameEngineRef.current) {
-      gameEngineRef.current = new GameEngine(
-        ctx,
-        canvas.width,
-        canvas.height,
-        useGameStore.getState()
-      );
+    // Clean up old game engine if it exists
+    if (gameEngineRef.current) {
+      gameEngineRef.current.dispose();
+      gameEngineRef.current = null;
     }
-  }, []); // Empty dependency array - only run once
+
+    // Initialize new game engine
+    gameEngineRef.current = new GameEngine(
+      ctx,
+      canvas.width,
+      canvas.height,
+      useGameStore.getState()
+    );
+
+    // Cleanup function
+    return () => {
+      if (gameEngineRef.current) {
+        gameEngineRef.current.dispose();
+        gameEngineRef.current = null;
+      }
+    };
+  }, [GameEngineConfig, isPlayGround]);
 
   // Game loop in separate effect - always run but only update game logic when playing
   useEffect(() => {
@@ -44,8 +64,8 @@ export const GameContainer: React.FC = () => {
         // Always render the map
         gameEngineRef.current.render();
 
-        // Only update game logic when playing
-        if (gameStatus === "playing") {
+        // Update game logic if playing or in playground mode
+        if (gameStatus === "playing" || isPlayGround) {
           gameEngineRef.current.update();
         }
       }
@@ -59,7 +79,14 @@ export const GameContainer: React.FC = () => {
         cancelAnimationFrame(animationId);
       }
     };
-  }, [gameStatus]);
+  }, [gameStatus, isPlayGround]);
+
+  // Start playground mode when isPlayGround is true
+  useEffect(() => {
+    if (isPlayGround) {
+      startPlayGround();
+    }
+  }, [isPlayGround, startPlayGround]);
 
   return (
     <div className="flex flex-col items-center justify-center gap-6 relative">
@@ -78,13 +105,12 @@ export const GameContainer: React.FC = () => {
           style={{ imageRendering: "crisp-edges" }}
         />
 
-        {/* In-game UI - only show when playing */}
-        {gameStatus === "playing" && (
+        {gameStatus === "playing" && !isPlayGround && (
           <InGameMenu canvasContainerRef={canvasContainerRef} />
         )}
 
         {/* Menu Screens - show as overlay for all non-playing states */}
-        {gameStatus !== "playing" && (
+        {gameStatus !== "playing" && !isPlayGround && (
           <GameMenu canvasContainerRef={canvasContainerRef} />
         )}
 

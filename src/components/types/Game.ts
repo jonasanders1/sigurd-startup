@@ -41,6 +41,7 @@ export interface GameStore {
   isFullscreen: boolean;
   lastEarnedBonus: number;
   lastPreBonusScore: number;
+  isPlayGround: boolean;
   [key: string]: unknown;
 
   // Actions
@@ -57,12 +58,15 @@ export interface GameStore {
   updateSpecialCoins: () => void;
   setIsFullscreen: (value: boolean) => void;
   startGame: () => void;
+  startPlayGround: () => void;
   pauseGame: () => void;
   continueGame: () => void;
   getState: () => GameStore;
   updateBonus: (points: number) => void;
   resetBonus: () => void;
   resetCorrectOrderCount: () => void;
+  setIsPlayGround: (value: boolean) => void;
+  togglePlayGround: () => void;
   resetCompletedGroups: () => void;
   setCorrectOrderCount: (count: number) => void;
   setLastBonusAndScore: (bonus: number, score: number) => void;
@@ -71,4 +75,5 @@ export interface GameStore {
   incrementCorrectOrder: () => void;
   setActiveGroup: (group: number | null) => void;
   addCompletedGroup: (group: number) => void;
+  resetAll: () => void;
 }
