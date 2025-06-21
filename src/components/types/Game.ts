@@ -14,18 +14,44 @@ export enum BonusType {
 
 export enum GameStatus {
   MENU = "menu",
+  COUNTDOWN = "countdown",
   PLAYING = "playing",
   PAUSED = "paused",
-  GAME_OVER = "gameOver",
-  BONUS_SCREEN = "bonusScreen",
-  COUNTDOWN = "countdown",
+  BONUS_SCREEN = "bonus_screen",
+  GAME_OVER = "game_over",
+}
+
+// Simple monster types for the simplified game
+export enum MonsterType {
+  BUREAUCRAT = "bureaucrat",
+  TAXMAN = "taxman",
+  REGULATOR = "regulator",
+  TAX_GHOST = "tax-ghost",
+  REGULATION_ROBOT = "regulation-robot",
+  BUREAUCRAT_CLONE = "bureaucrat-clone",
+  FEE_ALIEN = "fee-alien",
+  CONTROL_CRAB = "control-crab",
+}
+
+// Simple audio types for the simplified game
+export interface AudioConfig {
+  masterVolume: number;
+  sfxVolume: number;
+  musicVolume: number;
+  enabled: boolean;
+  musicMuted: boolean;
+  sfxMuted: boolean;
+}
+
+export interface AudioAssets {
+  [key: string]: string;
 }
 
 export interface GameStore {
-  // State
-  score: number;
+  // Core game state
   lives: number;
-  bonus: number;
+  score: number;
+  bonus: BonusType;
   level: number;
   gameStatus: GameStatus;
   currentMapId: string;
@@ -42,11 +68,10 @@ export interface GameStore {
   lastEarnedBonus: number;
   lastPreBonusScore: number;
   isPlayGround: boolean;
-  [key: string]: unknown;
 
   // Actions
   setGameStatus: (status: GameStatus) => void;
-  updateScore: (bonus: number, score: number) => void;
+  updateScore: (points: number) => void;
   loseLife: () => void;
   gainLife: () => void;
   setLevel: (level: number) => void;
@@ -58,22 +83,21 @@ export interface GameStore {
   updateSpecialCoins: () => void;
   setIsFullscreen: (value: boolean) => void;
   startGame: () => void;
-  startPlayGround: () => void;
   pauseGame: () => void;
   continueGame: () => void;
-  getState: () => GameStore;
+  getState: () => any;
   updateBonus: (points: number) => void;
   resetBonus: () => void;
   resetCorrectOrderCount: () => void;
-  setIsPlayGround: (value: boolean) => void;
-  togglePlayGround: () => void;
   resetCompletedGroups: () => void;
   setCorrectOrderCount: (count: number) => void;
   setLastBonusAndScore: (bonus: number, score: number) => void;
-  // Bomb collection actions
   addBombCollected: (bomb: BombCollected) => void;
   incrementCorrectOrder: () => void;
   setActiveGroup: (group: number | null) => void;
   addCompletedGroup: (group: number) => void;
+  setIsPlayGround: (value: boolean) => void;
+  togglePlayGround: () => void;
+  startPlayGround: () => void;
   resetAll: () => void;
 }

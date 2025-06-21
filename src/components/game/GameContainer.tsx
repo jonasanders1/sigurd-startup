@@ -1,21 +1,30 @@
 import React, { useRef, useEffect, useState } from "react";
-import { GameEngine } from "./core/GameEngine";
+import { KaplayGameEngine } from "./kaplay/KaplayGameEngine";
 import { DebugPanel } from "./DebugPanel";
-import { PowerModeOverlay } from "./PowerModeOverlay";
 import { GameMenu } from "./GameMenu";
 import { InGameMenu } from "./ui-screens/InGameMenu";
 import { useGameStore } from "@/components/stores/useGameStore";
 import { GameEngineConfig } from "./config/GameEngineConfig";
 
+// Check WebGL support
+const checkWebGLSupport = (): boolean => {
+  try {
+    const canvas = document.createElement('canvas');
+    const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+    return !!gl;
+  } catch (e) {
+    return false;
+  }
+};
+
 export const GameContainer: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const canvasContainerRef = useRef<HTMLDivElement>(null);
-  const gameEngineRef = useRef<GameEngine | null>(null);
-  // const [isPlayGround, setIsPlayGround] = useState(true);
+  const gameEngineRef = useRef<KaplayGameEngine | null>(null);
+  const [engineError, setEngineError] = useState<string | null>(null);
 
   const {
     gameStatus,
-    pCoinActive,
     isFullscreen,
     startPlayGround,
     isPlayGround,
@@ -26,9 +35,7 @@ export const GameContainer: React.FC = () => {
     if (!canvasRef.current) return;
 
     const canvas = canvasRef.current;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-
+    
     // Set canvas size
     canvas.width = 800;
     canvas.height = 600;
@@ -39,13 +46,25 @@ export const GameContainer: React.FC = () => {
       gameEngineRef.current = null;
     }
 
-    // Initialize new game engine
-    gameEngineRef.current = new GameEngine(
-      ctx,
-      canvas.width,
-      canvas.height,
-      useGameStore.getState()
-    );
+    // Reset error state
+    setEngineError(null);
+
+    try {
+      // Initialize Kaplay game engine
+      if (!checkWebGLSupport()) {
+        throw new Error("WebGL is not supported in this browser");
+      }
+      
+      gameEngineRef.current = new KaplayGameEngine(
+        canvas,
+        canvas.width,
+        canvas.height,
+        useGameStore.getState()
+      );
+    } catch (error) {
+      console.error("Game engine initialization failed:", error);
+      setEngineError(error instanceof Error ? error.message : "Unknown error");
+    }
 
     // Cleanup function
     return () => {
@@ -56,29 +75,15 @@ export const GameContainer: React.FC = () => {
     };
   }, [GameEngineConfig, isPlayGround]);
 
-  // Game loop in separate effect - always run but only update game logic when playing
+  // Game loop - Kaplay handles its own game loop
   useEffect(() => {
-    let animationId: number;
-    const gameLoop = () => {
-      if (gameEngineRef.current) {
-        // Always render the map
-        gameEngineRef.current.render();
-
-        // Update game logic if playing or in playground mode
-        if (gameStatus === "playing" || isPlayGround) {
-          gameEngineRef.current.update();
-        }
+    const updateInterval = setInterval(() => {
+      if (gameEngineRef.current && (gameStatus === "playing" || isPlayGround)) {
+        gameEngineRef.current.update();
       }
-      animationId = requestAnimationFrame(gameLoop);
-    };
+    }, 1000 / 60); // 60 FPS
 
-    gameLoop();
-
-    return () => {
-      if (animationId) {
-        cancelAnimationFrame(animationId);
-      }
-    };
+    return () => clearInterval(updateInterval);
   }, [gameStatus, isPlayGround]);
 
   // Start playground mode when isPlayGround is true
@@ -99,22 +104,34 @@ export const GameContainer: React.FC = () => {
           isFullscreen ? "w-screen h-screen max-w-none" : ""
         }`}
       >
-        <canvas
-          ref={canvasRef}
-          className={`block max-w-full ${isFullscreen ? "w-full h-full" : ""}`}
-          style={{ imageRendering: "crisp-edges" }}
-        />
+        {engineError ? (
+          <div className="flex items-center justify-center w-[800px] h-[600px] text-white">
+            <div className="text-center p-8">
+              <h2 className="text-2xl font-bold mb-4">Game Engine Error</h2>
+              <p className="mb-4 text-red-400">{engineError}</p>
+              <p className="text-sm opacity-75">
+                Please ensure your browser supports WebGL.
+              </p>
+            </div>
+          </div>
+        ) : (
+          <>
+            <canvas
+              ref={canvasRef}
+              className={`block max-w-full ${isFullscreen ? "w-full h-full" : ""}`}
+              style={{ imageRendering: "crisp-edges" }}
+            />
 
-        {gameStatus === "playing" && !isPlayGround && (
-          <InGameMenu canvasContainerRef={canvasContainerRef} />
+            {gameStatus === "playing" && !isPlayGround && (
+              <InGameMenu canvasContainerRef={canvasContainerRef} />
+            )}
+
+            {/* Menu Screens - show as overlay for all non-playing states */}
+            {gameStatus !== "playing" && !isPlayGround && (
+              <GameMenu canvasContainerRef={canvasContainerRef} />
+            )}
+          </>
         )}
-
-        {/* Menu Screens - show as overlay for all non-playing states */}
-        {gameStatus !== "playing" && !isPlayGround && (
-          <GameMenu canvasContainerRef={canvasContainerRef} />
-        )}
-
-        {pCoinActive && <PowerModeOverlay />}
       </div>
     </div>
   );

@@ -1,5 +1,5 @@
 import { GameStatus } from "../../types/Game";
-import { AudioConfig, AudioAssets } from "../../types/Audio";
+import { AudioConfig, AudioAssets } from "../../types/Game";
 
 export class AudioManager {
   private config: AudioConfig;
@@ -153,7 +153,7 @@ export class AudioManager {
   public playSFX(soundName: keyof AudioAssets): void {
     if (this.config.sfxMuted) return;
 
-    const sound = this.assets.get(soundName);
+    const sound = this.assets.get(soundName as string);
     if (sound) {
       // Clone the audio for overlapping sounds
       const soundClone = sound.cloneNode() as HTMLAudioElement;

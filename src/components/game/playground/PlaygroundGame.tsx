@@ -1,8 +1,7 @@
 import { useEffect, useRef } from "react";
-import { GameEngine } from "../core/GameEngine";
+import { KaplayGameEngine } from "../kaplay/KaplayGameEngine";
 import { MapDefinition } from "../config/MapDefinitions";
-import { MonsterType } from "../../types/Monster";
-import { PhysicsConfig } from "../config/PhysicsConfig";
+import { MonsterType } from "../../types/Game";
 import { GameStatus, BonusType, GameStore } from "../../types/Game";
 import { create } from "zustand";
 
@@ -95,22 +94,25 @@ const useMockGameStore = create<GameStore>()((set, get) => ({
   incrementCorrectOrder: () => {},
   setActiveGroup: () => {},
   addCompletedGroup: () => {},
+  isPlayGround: true,
+  startPlayGround: () => {},
+  setIsPlayGround: () => {},
+  togglePlayGround: () => {},
+  resetAll: () => {},
 }));
 
 export const PlaygroundGame = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const gameEngineRef = useRef<GameEngine | null>(null);
+  const gameEngineRef = useRef<KaplayGameEngine | null>(null);
 
   useEffect(() => {
     if (!canvasRef.current) return;
 
     const canvas = canvasRef.current;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
 
-    // Initialize game engine with playground settings
-    const gameEngine = new GameEngine(
-      ctx,
+    // Initialize Kaplay game engine with playground settings
+    const gameEngine = new KaplayGameEngine(
+      canvas,
       canvas.width,
       canvas.height,
       useMockGameStore.getState()
@@ -121,19 +123,18 @@ export const PlaygroundGame = () => {
     // Force load the playground map
     gameEngine.loadMap(playgroundMap);
 
-    // Game loop
-    let animationFrameId: number;
-    const gameLoop = () => {
-      // Always update and render, regardless of game status
-      gameEngine.update();
-      gameEngine.render();
-      animationFrameId = requestAnimationFrame(gameLoop);
-    };
-
-    gameLoop();
+    // Kaplay handles its own game loop, but we can update manually for playground
+    const updateInterval = setInterval(() => {
+      if (gameEngineRef.current) {
+        gameEngineRef.current.update();
+      }
+    }, 1000 / 60); // 60 FPS
 
     return () => {
-      cancelAnimationFrame(animationFrameId);
+      clearInterval(updateInterval);
+      if (gameEngineRef.current) {
+        gameEngineRef.current.dispose();
+      }
     };
   }, []);
 
@@ -147,11 +148,8 @@ export const PlaygroundGame = () => {
           className="border rounded-lg"
         />
         <div className="bg-black/50 text-white p-2 flex-1 rounded-lg">
-          <p>Playground Mode</p>
-          <p>Physics Config:</p>
-          <pre className="text-xs">
-            {JSON.stringify(PhysicsConfig.getDefaultConfig(), null, 2)}
-          </pre>
+          <p>Playground Mode (Kaplay)</p>
+          <p>Using Kaplay game engine with simplified physics</p>
         </div>
       </div>
     </div>

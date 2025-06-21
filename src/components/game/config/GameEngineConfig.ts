@@ -14,16 +14,12 @@ export interface IGameEngineConfig {
     initialLives: number;
     jumpForce: number;
     horizontalSpeed: number;
-
-    gravity: number;
   };
   bomb: {
     size: {
       width: number;
       height: number;
     };
-    groupSize: number;
-    highlightDuration: number;
   };
   monster: {
     size: {
@@ -31,30 +27,9 @@ export interface IGameEngineConfig {
       height: number;
     };
     baseSpeed: number;
-    detectionRange: number;
-  };
-  specialCoin: {
-    size: {
-      width: number;
-      height: number;
-    };
-    spawnInterval: number;
-    pCoinDuration: number;
-    pCoinColors: string[];
-  };
-  scoring: {
-    bombBaseValue: number;
-    correctOrderBonus: number;
-    jumpBonus: number;
-    bCoinValue: number;
-    eCoinValue: number;
-    pCoinMultiplier: number;
   };
   game: {
     initialLevel: number;
-    countdownDuration: number;
-    bonusScreenDuration: number;
-    transitionDelay: number;
   };
 }
 
@@ -69,50 +44,26 @@ export class GameEngineConfig {
         width: 32,
         height: 32,
       },
-      color: "#3B82F6",
+      color: "#00FF00", // Green
       initialLives: 3,
-      jumpForce: 12,
-      horizontalSpeed: 5,
-      gravity: 0.5,
+      jumpForce: 300,
+      horizontalSpeed: 200,
     },
     bomb: {
       size: {
         width: 20,
         height: 20,
       },
-      groupSize: 3,
-      highlightDuration: 2000,
     },
     monster: {
       size: {
         width: 28,
         height: 28,
       },
-      baseSpeed: 1,
-      detectionRange: 150,
-    },
-    specialCoin: {
-      size: {
-        width: 25,
-        height: 25,
-      },
-      spawnInterval: 10000,
-      pCoinDuration: 10000,
-      pCoinColors: ["#FFD700", "#FFA500", "#FF4500"],
-    },
-    scoring: {
-      bombBaseValue: 100,
-      correctOrderBonus: 50,
-      jumpBonus: 10,
-      bCoinValue: 200,
-      eCoinValue: 300,
-      pCoinMultiplier: 2,
+      baseSpeed: 100,
     },
     game: {
       initialLevel: 1,
-      countdownDuration: 3000,
-      bonusScreenDuration: 3000,
-      transitionDelay: 1000,
     },
   };
 
@@ -127,31 +78,7 @@ export class GameEngineConfig {
    * Get configuration for a specific game status
    */
   static getConfigForStatus(status: GameStatus): Partial<IGameEngineConfig> {
-    switch (status) {
-      case GameStatus.PLAYING:
-        return {
-          game: {
-            ...this.defaultConfig.game,
-            transitionDelay: 0,
-          },
-        };
-      case GameStatus.COUNTDOWN:
-        return {
-          game: {
-            ...this.defaultConfig.game,
-            transitionDelay: this.defaultConfig.game.countdownDuration,
-          },
-        };
-      case GameStatus.BONUS_SCREEN:
-        return {
-          game: {
-            ...this.defaultConfig.game,
-            transitionDelay: this.defaultConfig.game.bonusScreenDuration,
-          },
-        };
-      default:
-        return {};
-    }
+    return {};
   }
 
   /**
@@ -165,25 +92,6 @@ export class GameEngineConfig {
       monster: {
         ...this.defaultConfig.monster,
         baseSpeed: this.defaultConfig.monster.baseSpeed * difficultyMultiplier,
-        detectionRange:
-          this.defaultConfig.monster.detectionRange * difficultyMultiplier,
-      },
-      specialCoin: {
-        ...this.defaultConfig.specialCoin,
-        spawnInterval: Math.max(
-          this.defaultConfig.specialCoin.spawnInterval *
-            (1 - (level - 1) * 0.05),
-          5000
-        ),
-      },
-      scoring: {
-        ...this.defaultConfig.scoring,
-        bombBaseValue: Math.floor(
-          this.defaultConfig.scoring.bombBaseValue * difficultyMultiplier
-        ),
-        correctOrderBonus: Math.floor(
-          this.defaultConfig.scoring.correctOrderBonus * difficultyMultiplier
-        ),
       },
     };
   }
@@ -202,8 +110,8 @@ export class GameEngineConfig {
 
     return {
       canvas: {
-        width,
-        height,
+        width: Math.floor(this.defaultConfig.canvas.width * scale),
+        height: Math.floor(this.defaultConfig.canvas.height * scale),
       },
       player: {
         ...this.defaultConfig.player,
@@ -213,7 +121,6 @@ export class GameEngineConfig {
         },
       },
       bomb: {
-        ...this.defaultConfig.bomb,
         size: {
           width: Math.floor(this.defaultConfig.bomb.size.width * scale),
           height: Math.floor(this.defaultConfig.bomb.size.height * scale),
@@ -224,15 +131,6 @@ export class GameEngineConfig {
         size: {
           width: Math.floor(this.defaultConfig.monster.size.width * scale),
           height: Math.floor(this.defaultConfig.monster.size.height * scale),
-        },
-      },
-      specialCoin: {
-        ...this.defaultConfig.specialCoin,
-        size: {
-          width: Math.floor(this.defaultConfig.specialCoin.size.width * scale),
-          height: Math.floor(
-            this.defaultConfig.specialCoin.size.height * scale
-          ),
         },
       },
     };

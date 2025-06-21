@@ -1,5 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
-import { Home, Settings, List, Joystick } from "lucide-react";
+import { Home, Settings, List, Joystick, Gamepad2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Logo from "@/assets/logo.png";
 
@@ -9,6 +9,7 @@ const Navigation = () => {
   const navItems = [
     { path: "/", label: "Hjem", icon: Home },
     { path: "/game", label: "Spill", icon: Joystick },
+    { path: "/kaplay-demo", label: "Kaplay", icon: Gamepad2 },
     { path: "/leaderboard", label: "Toppliste", icon: List },
     { path: "/settings", label: "Innstillinger", icon: Settings },
   ];

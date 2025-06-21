@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import { AudioConfig } from "../types/Audio";
+import { AudioConfig } from "../types/Game";
 
 // Sound events enum for type safety (keep this for reference)
 export enum SoundEvent {
@@ -54,6 +54,15 @@ const DEFAULT_SETTINGS = {
   isSfxMuted: false,
 };
 
+const defaultAudioConfig: AudioConfig = {
+  masterVolume: 0.7,
+  musicVolume: 0.5,
+  sfxVolume: 0.8,
+  musicMuted: false,
+  sfxMuted: false,
+  enabled: true,
+};
+
 export const useAudioStore = create<AudioStore>()(
   persist(
     (set, get) => ({
@@ -95,6 +104,7 @@ export const useAudioStore = create<AudioStore>()(
           sfxVolume: state.sfxVolume / 100,
           musicMuted: state.isMasterMuted || state.isMusicMuted,
           sfxMuted: state.isMasterMuted || state.isSfxMuted,
+          enabled: !state.isMasterMuted,
         };
       },
 

@@ -1,5 +1,5 @@
 import { platform } from "os";
-import { MonsterType } from "../../types/Monster";
+import { MonsterType } from "../../types/Game";
 
 export interface MapPlatform {
   x: number;
